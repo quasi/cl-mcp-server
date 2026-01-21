@@ -71,3 +71,50 @@
     :id (cdr (assoc "id" data :test #'string=))
     :method (cdr (assoc "method" data :test #'string=))
     :params (cdr (assoc "params" data :test #'string=))))
+
+;;; Encoding
+
+(defun alist-to-hash-table (alist)
+  "Convert an alist to a hash table for yason encoding"
+  (let ((ht (make-hash-table :test #'equal)))
+    (dolist (pair alist ht)
+      (setf (gethash (car pair) ht)
+            (if (and (listp (cdr pair))
+                     (consp (car (cdr pair)))
+                     (stringp (caar (cdr pair))))
+                (alist-to-hash-table (cdr pair))
+                (cdr pair))))))
+
+(defun encode-response (response)
+  "Encode a JSON-RPC response to a JSON string.
+   Returns a string with no trailing newline."
+  (with-output-to-string (s)
+    (let ((ht (make-hash-table :test #'equal)))
+      (setf (gethash "jsonrpc" ht) "2.0")
+      (setf (gethash "id" ht) (response-id response))
+      (if (response-error response)
+          ;; Error response
+          (let ((err-ht (make-hash-table :test #'equal)))
+            (setf (gethash "code" err-ht) (getf (response-error response) :code))
+            (setf (gethash "message" err-ht) (getf (response-error response) :message))
+            (when (getf (response-error response) :data)
+              (setf (gethash "data" err-ht) (getf (response-error response) :data)))
+            (setf (gethash "error" ht) err-ht))
+          ;; Success response
+          (setf (gethash "result" ht)
+                (if (and (listp (response-result response))
+                         (consp (car (response-result response)))
+                         (stringp (caar (response-result response))))
+                    (alist-to-hash-table (response-result response))
+                    (response-result response))))
+      (yason:encode ht s))))
+
+(defun encode-error (condition &optional id)
+  "Encode a json-rpc-error condition as a JSON response string"
+  (encode-response
+    (make-error-response
+      :id id
+      :code (error-code condition)
+      :message (error-message condition)
+      :data (when (slot-boundp condition 'data)
+              (error-data condition)))))

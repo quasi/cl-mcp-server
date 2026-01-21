@@ -35,6 +35,7 @@
                  (:file "transport-tests")
                  (:file "session-tests")
                  (:file "evaluator-tests")
-                 (:file "integration-tests"))))
+                 (:file "integration-tests")
+                 (:file "encoding-tests"))))
   :perform (test-op (o c)
              (symbol-call :fiveam :run! :cl-mcp-server-tests)))
