@@ -148,3 +148,84 @@
     (is (search "Boom" error-string))
     ;; Warnings collected before error should still be captured
     (is (= 1 (length warnings)))))
+
+;;; Specific condition type tests
+
+(test condition-unbound-variable
+  "Handles unbound variable condition"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (symbol-value 'nonexistent-variable-12345))
+    (declare (ignore warnings))
+    (is (null result))
+    (is (stringp error-string))
+    (is (search "UNBOUND-VARIABLE" error-string))))
+
+(test condition-division-by-zero
+  "Handles division by zero condition"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (/ 1 0))
+    (declare (ignore warnings))
+    (is (null result))
+    (is (stringp error-string))
+    (is (search "DIVISION-BY-ZERO" error-string))))
+
+(test condition-undefined-function
+  "Handles undefined function condition"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (funcall 'nonexistent-function-12345))
+    (declare (ignore warnings))
+    (is (null result))
+    (is (stringp error-string))
+    (is (search "UNDEFINED-FUNCTION" error-string))))
+
+(test condition-type-error
+  "Handles type error condition"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (+ "not a number" 1))
+    (declare (ignore warnings))
+    (is (null result))
+    (is (stringp error-string))
+    (is (search "TYPE-ERROR" error-string))))
+
+(test condition-package-error
+  "Handles package error condition"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (find-package 'nonexistent-package-12345)
+        ;; find-package returns nil for nonexistent, use intern instead
+        (intern "FOO" 'nonexistent-package-12345))
+    (declare (ignore warnings))
+    (is (null result))
+    (is (stringp error-string))
+    ;; Package errors can be various types
+    (is (or (search "PACKAGE-ERROR" error-string)
+            (search "PACKAGE" error-string)))))
+
+(test condition-file-error
+  "Handles file error condition"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (open "/nonexistent/path/file.txt"))
+    (declare (ignore warnings))
+    (is (null result))
+    (is (stringp error-string))
+    ;; File errors show up differently on different systems
+    (is (or (search "FILE-ERROR" error-string)
+            (search "file" error-string)
+            (search "No such file" error-string)))))
+
+(test condition-mcp-error
+  "Handles custom MCP error conditions"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (error 'cl-mcp-server.conditions:invalid-params
+               :message "Bad parameter"))
+    (declare (ignore warnings))
+    (is (null result))
+    (is (stringp error-string))
+    (is (search "INVALID-PARAMS" error-string))
+    (is (search "Bad parameter" error-string))))
