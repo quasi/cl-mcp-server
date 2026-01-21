@@ -57,3 +57,51 @@
   "session-definitions is initially empty"
   (let ((session (cl-mcp-server.session:make-session)))
     (is (null (cl-mcp-server.session:session-definitions session)))))
+
+;;; Task 2: Definition listing tests
+
+(test list-definitions-empty
+  "list-definitions returns empty list for fresh session"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (is (null (cl-mcp-server.session:list-definitions session)))))
+
+(test list-definitions-with-data
+  "list-definitions returns definitions from session"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (setf (cl-mcp-server.session:session-definitions session)
+          '((:function . test-fn)
+            (:variable . *test-var*)
+            (:macro . test-macro)))
+    (let ((defs (cl-mcp-server.session:list-definitions session)))
+      (is (= 3 (length defs)))
+      (is (member '(:function . test-fn) defs :test #'equal)))))
+
+(test list-definitions-by-type
+  "list-definitions can filter by type"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (setf (cl-mcp-server.session:session-definitions session)
+          '((:function . test-fn1)
+            (:function . test-fn2)
+            (:variable . *test-var*)
+            (:macro . test-macro)))
+    (let ((funcs (cl-mcp-server.session:list-definitions session :type :function)))
+      (is (= 2 (length funcs)))
+      (is (every (lambda (d) (eq :function (car d))) funcs)))))
+
+(test format-definitions-empty
+  "format-definitions returns message for empty session"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (let ((output (cl-mcp-server.session:format-definitions session)))
+      (is (stringp output))
+      (is (search "No definitions" output)))))
+
+(test format-definitions-with-data
+  "format-definitions returns formatted string"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (setf (cl-mcp-server.session:session-definitions session)
+          '((:function . my-function)
+            (:variable . *my-var*)))
+    (let ((output (cl-mcp-server.session:format-definitions session)))
+      (is (stringp output))
+      (is (search "my-function" output))
+      (is (search "*my-var*" output)))))
