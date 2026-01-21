@@ -7,4 +7,53 @@
   :description "Session management tests"
   :in cl-mcp-server-tests)
 
-;; Tests to be added in session-management plan
+(in-suite session-tests)
+
+;;; Task 1: Basic session structure tests
+
+(test make-session-default
+  "Creating a session with default package"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (is (not (null session)))
+    (is (eq (find-package :cl-user)
+            (cl-mcp-server.session:session-package session)))
+    (is (null (cl-mcp-server.session:session-loaded-systems session)))))
+
+(test make-session-with-package-object
+  "Creating a session with specific package object"
+  (let ((session (cl-mcp-server.session:make-session
+                  :package (find-package :cl))))
+    (is (eq (find-package :cl)
+            (cl-mcp-server.session:session-package session)))))
+
+(test make-session-with-package-name
+  "Creating a session with package name (symbol)"
+  (let ((session (cl-mcp-server.session:make-session :package :cl)))
+    (is (eq (find-package :cl)
+            (cl-mcp-server.session:session-package session)))))
+
+(test make-session-with-package-string
+  "Creating a session with package name (string)"
+  (let ((session (cl-mcp-server.session:make-session :package "CL")))
+    (is (eq (find-package :cl)
+            (cl-mcp-server.session:session-package session)))))
+
+(test with-session-binds-special
+  "with-session binds *session* during body"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (is (null cl-mcp-server.session:*session*))
+    (cl-mcp-server.session:with-session (session)
+      (is (eq session cl-mcp-server.session:*session*)))
+    (is (null cl-mcp-server.session:*session*))))
+
+(test with-session-returns-body-value
+  "with-session returns the value of the body"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (is (= 42
+           (cl-mcp-server.session:with-session (session)
+             42)))))
+
+(test session-definitions-initially-empty
+  "session-definitions is initially empty"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (is (null (cl-mcp-server.session:session-definitions session)))))

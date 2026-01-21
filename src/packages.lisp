@@ -26,7 +26,8 @@
    #:format-warning
    #:format-backtrace
    #:*max-backtrace-depth*
-   #:*print-backtrace-p*))
+   #:*print-backtrace-p*
+   #:with-error-capture))
 
 (defpackage #:cl-mcp-server.json-rpc
   (:use #:cl #:cl-mcp-server.conditions)
