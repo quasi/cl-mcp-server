@@ -30,6 +30,7 @@
   :components ((:module "tests"
                 :components
                 ((:file "packages")
+                 (:file "conditions-tests")
                  (:file "json-rpc-tests")
                  (:file "transport-tests")
                  (:file "session-tests")

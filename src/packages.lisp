@@ -3,6 +3,7 @@
 
 (defpackage #:cl-mcp-server.conditions
   (:use #:cl)
+  (:shadow #:parse-error)
   (:export
    ;; Condition types
    #:mcp-error
@@ -19,6 +20,7 @@
 
 (defpackage #:cl-mcp-server.json-rpc
   (:use #:cl #:cl-mcp-server.conditions)
+  (:shadowing-import-from #:cl-mcp-server.conditions #:parse-error)
   (:export
    ;; Message types
    #:json-rpc-request
@@ -89,6 +91,7 @@
         #:cl-mcp-server.session
         #:cl-mcp-server.evaluator
         #:cl-mcp-server.tools)
+  (:shadowing-import-from #:cl-mcp-server.conditions #:parse-error)
   (:export
    #:start
    #:*server-info*))
