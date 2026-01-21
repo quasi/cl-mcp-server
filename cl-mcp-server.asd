@@ -15,13 +15,14 @@
                 :components
                 ((:file "packages")
                  (:file "conditions")
+                 (:file "error-format")
                  (:file "json-rpc")
                  (:file "transport")
                  (:file "session")
                  (:file "evaluator")
                  (:file "tools")
                  (:file "server"))))
-  :in-order-to ((test-op (test-op #:cl-mcp-server/tests))))
+  :in-order-to ((asdf:test-op (asdf:test-op #:cl-mcp-server/tests))))
 
 (asdf:defsystem #:cl-mcp-server/tests
   :description "Tests for CL-MCP-Server"
@@ -31,11 +32,12 @@
                 :components
                 ((:file "packages")
                  (:file "conditions-tests")
+                 (:file "error-format-tests")
                  (:file "json-rpc-tests")
                  (:file "transport-tests")
                  (:file "session-tests")
                  (:file "evaluator-tests")
                  (:file "integration-tests")
                  (:file "encoding-tests"))))
-  :perform (test-op (o c)
+  :perform (asdf:test-op (o c)
              (symbol-call :fiveam :run! :cl-mcp-server-tests)))

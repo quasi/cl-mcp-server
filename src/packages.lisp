@@ -18,6 +18,16 @@
    #:error-message
    #:error-data))
 
+(defpackage #:cl-mcp-server.error-format
+  (:use #:cl)
+  (:export
+   #:format-condition
+   #:format-error
+   #:format-warning
+   #:format-backtrace
+   #:*max-backtrace-depth*
+   #:*print-backtrace-p*))
+
 (defpackage #:cl-mcp-server.json-rpc
   (:use #:cl #:cl-mcp-server.conditions)
   (:shadowing-import-from #:cl-mcp-server.conditions #:parse-error)
@@ -59,9 +69,12 @@
    #:session
    #:make-session
    #:session-package
+   #:session-loaded-systems
    #:session-definitions
    #:reset-session
    #:list-definitions
+   #:format-definitions
+   #:switch-package
    #:with-session))
 
 (defpackage #:cl-mcp-server.evaluator
