@@ -137,3 +137,37 @@
   "reset-session returns the session for chaining"
   (let ((session (cl-mcp-server.session:make-session)))
     (is (eq session (cl-mcp-server.session:reset-session session)))))
+
+;;; Task 4: Package switching tests
+
+(test switch-package-by-symbol
+  "switch-package changes session package by symbol"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:switch-package session :cl)
+    (is (eq (find-package :cl)
+            (cl-mcp-server.session:session-package session)))))
+
+(test switch-package-by-string
+  "switch-package changes session package by string"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:switch-package session "COMMON-LISP")
+    (is (eq (find-package :cl)
+            (cl-mcp-server.session:session-package session)))))
+
+(test switch-package-by-object
+  "switch-package changes session package by package object"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:switch-package session (find-package :cl))
+    (is (eq (find-package :cl)
+            (cl-mcp-server.session:session-package session)))))
+
+(test switch-package-returns-session
+  "switch-package returns the session for chaining"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (is (eq session (cl-mcp-server.session:switch-package session :cl)))))
+
+(test switch-package-signals-error-for-nonexistent
+  "switch-package signals error for nonexistent package"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (signals cl-mcp-server.conditions:invalid-params
+      (cl-mcp-server.session:switch-package session :nonexistent-package-xyz))))

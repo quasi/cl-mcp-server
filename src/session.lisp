@@ -60,3 +60,20 @@ Returns the session for chaining."
   (setf (session-definitions session) nil)
   (setf (session-loaded-systems session) nil)
   session)
+
+;;; Package switching
+
+(defun switch-package (session package-designator)
+  "Switch SESSION to a different package.
+PACKAGE-DESIGNATOR can be a package object, symbol, or string.
+Signals INVALID-PARAMS if the package does not exist.
+Returns the session for chaining."
+  (let ((pkg (etypecase package-designator
+               (package package-designator)
+               ((or symbol string) (find-package package-designator)))))
+    (unless pkg
+      (error 'invalid-params
+             :message (format nil "Package ~s does not exist"
+                              package-designator)))
+    (setf (session-package session) pkg)
+    session))

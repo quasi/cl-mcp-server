@@ -64,7 +64,8 @@
    #:with-stdio-transport))
 
 (defpackage #:cl-mcp-server.session
-  (:use #:cl)
+  (:use #:cl #:cl-mcp-server.conditions)
+  (:shadowing-import-from #:cl-mcp-server.conditions #:parse-error)
   (:export
    #:*session*
    #:session
