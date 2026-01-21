@@ -41,3 +41,33 @@
     :id id
     :result nil
     :error (list :code code :message message :data data)))
+
+;;; Parsing
+
+(defun parse-message (json-string)
+  "Parse a JSON-RPC message from a JSON string.
+   Signals parse-error for invalid JSON.
+   Signals invalid-request for protocol violations.
+   Returns a json-rpc-request struct."
+  (let ((data (handler-case
+                  (yason:parse json-string :object-as :alist)
+                (error (e)
+                  (error 'parse-error
+                         :message (format nil "~a" e))))))
+    (validate-and-build-request data)))
+
+(defun validate-and-build-request (data)
+  "Validate parsed JSON data and build request struct"
+  (unless (assoc "jsonrpc" data :test #'string=)
+    (error 'invalid-request :message "missing jsonrpc field"))
+  (unless (string= "2.0" (cdr (assoc "jsonrpc" data :test #'string=)))
+    (error 'invalid-request :message "jsonrpc must be \"2.0\""))
+  (unless (assoc "method" data :test #'string=)
+    (error 'invalid-request :message "missing method field"))
+  (let ((method (cdr (assoc "method" data :test #'string=))))
+    (unless (stringp method)
+      (error 'invalid-request :message "method must be a string")))
+  (make-json-rpc-request
+    :id (cdr (assoc "id" data :test #'string=))
+    :method (cdr (assoc "method" data :test #'string=))
+    :params (cdr (assoc "params" data :test #'string=))))
