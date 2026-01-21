@@ -34,12 +34,16 @@
    #:response-id
    #:response-result
    #:response-error
-   ;; Functions
+   ;; Constructors
+   #:make-request
+   #:make-notification
+   #:notification-p
+   #:make-success-response
+   #:make-error-response
+   ;; Functions (future)
    #:parse-message
    #:encode-response
-   #:encode-error
-   #:make-success-response
-   #:make-error-response))
+   #:encode-error))
 
 (defpackage #:cl-mcp-server.transport
   (:use #:cl #:cl-mcp-server.json-rpc)
