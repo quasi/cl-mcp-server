@@ -94,3 +94,57 @@
              (lines (count #\Newline truncated)))
         ;; Should have at most max-depth + 1 lines (including "...")
         (is (<= lines 6))))))
+
+;;; with-error-capture tests
+
+(test with-error-capture-success
+  "with-error-capture returns values on success"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (+ 1 2))
+    (is (equal '(3) result))
+    (is (null error-string))
+    (is (null warnings))))
+
+(test with-error-capture-multiple-values
+  "with-error-capture preserves multiple values"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (values 1 2 3))
+    (is (equal '(1 2 3) result))
+    (is (null error-string))
+    (is (null warnings))))
+
+(test with-error-capture-handles-error
+  "with-error-capture captures errors"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (error "Test error"))
+    (is (null result))
+    (is (stringp error-string))
+    (is (search "Test error" error-string))
+    (is (null warnings))))
+
+(test with-error-capture-collects-warnings
+  "with-error-capture collects warnings"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (warn "Warning 1")
+        (warn "Warning 2")
+        42)
+    (is (equal '(42) result))
+    (is (null error-string))
+    (is (= 2 (length warnings)))
+    (is (every #'stringp warnings))))
+
+(test with-error-capture-error-and-warnings
+  "with-error-capture captures both error and warnings"
+  (multiple-value-bind (result error-string warnings)
+      (cl-mcp-server.error-format:with-error-capture
+        (warn "Warning before error")
+        (error "Boom"))
+    (is (null result))
+    (is (stringp error-string))
+    (is (search "Boom" error-string))
+    ;; Warnings collected before error should still be captured
+    (is (= 1 (length warnings)))))

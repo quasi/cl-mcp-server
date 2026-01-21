@@ -67,3 +67,27 @@
   (if (typep condition 'warning)
       (format-warning condition)
       (format-error condition)))
+
+;;; Error capture macro
+
+(defmacro with-error-capture (&body body)
+  "Execute BODY, capturing any errors and warnings.
+Returns three values:
+  1. List of return values from BODY (or NIL on error)
+  2. Formatted error string (or NIL on success)
+  3. List of formatted warning strings"
+  (let ((warnings (gensym "WARNINGS"))
+        (error-string (gensym "ERROR-STRING"))
+        (results (gensym "RESULTS")))
+    `(let ((,warnings nil)
+           (,error-string nil)
+           (,results nil))
+       (handler-bind
+           ((warning (lambda (c)
+                       (push (format-warning c) ,warnings)
+                       (muffle-warning c))))
+         (handler-case
+             (setf ,results (multiple-value-list (progn ,@body)))
+           (error (c)
+             (setf ,error-string (format-error c)))))
+       (values ,results ,error-string (nreverse ,warnings)))))
