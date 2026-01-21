@@ -50,3 +50,13 @@ If TYPE is specified, only show definitions of that type."
             (format s "  ~a: ~a~%"
                     (string-downcase (symbol-name (car def)))
                     (string-downcase (symbol-name (cdr def)))))))))
+
+;;; Session reset
+
+(defun reset-session (session)
+  "Reset SESSION to a fresh state.
+Clears definitions and loaded systems, but preserves the current package.
+Returns the session for chaining."
+  (setf (session-definitions session) nil)
+  (setf (session-loaded-systems session) nil)
+  session)

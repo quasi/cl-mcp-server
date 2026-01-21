@@ -105,3 +105,35 @@
       (is (stringp output))
       (is (search "my-function" output))
       (is (search "*my-var*" output)))))
+
+;;; Task 3: Session reset tests
+
+(test reset-session-clears-definitions
+  "reset-session clears definitions"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (setf (cl-mcp-server.session:session-definitions session)
+          '((:function . test-fn)))
+    (cl-mcp-server.session:reset-session session)
+    (is (null (cl-mcp-server.session:session-definitions session)))))
+
+(test reset-session-clears-loaded-systems
+  "reset-session clears loaded systems"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (setf (cl-mcp-server.session:session-loaded-systems session)
+          '(:system-a :system-b))
+    (cl-mcp-server.session:reset-session session)
+    (is (null (cl-mcp-server.session:session-loaded-systems session)))))
+
+(test reset-session-preserves-package
+  "reset-session preserves current package"
+  (let ((session (cl-mcp-server.session:make-session :package :cl)))
+    (setf (cl-mcp-server.session:session-definitions session)
+          '((:function . test-fn)))
+    (cl-mcp-server.session:reset-session session)
+    (is (eq (find-package :cl)
+            (cl-mcp-server.session:session-package session)))))
+
+(test reset-session-returns-session
+  "reset-session returns the session for chaining"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (is (eq session (cl-mcp-server.session:reset-session session)))))
