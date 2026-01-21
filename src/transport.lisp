@@ -3,4 +3,28 @@
 
 (in-package #:cl-mcp-server.transport)
 
-;; Stub - to be implemented in mcp-protocol plan
+(defun read-message (&optional (stream *standard-input*))
+  "Read a single JSON-RPC message from stream.
+   Messages are newline-delimited JSON (NDJSON).
+   Returns nil on EOF, json-rpc-request on success.
+   Signals parse-error or invalid-request on bad input."
+  (let ((line (read-line stream nil nil)))
+    (when line
+      (let ((trimmed (string-trim '(#\Space #\Tab #\Return) line)))
+        (unless (zerop (length trimmed))
+          (cl-mcp-server.json-rpc:parse-message trimmed))))))
+
+(defun write-message (response &optional (stream *standard-output*))
+  "Write a JSON-RPC response to stream with newline delimiter."
+  (write-string (cl-mcp-server.json-rpc:encode-response response) stream)
+  (write-char #\Newline stream)
+  (force-output stream))
+
+(defmacro with-stdio-transport ((&key (input '*standard-input*)
+                                      (output '*standard-output*))
+                                &body body)
+  "Execute body with stdio transport bindings.
+   Useful for testing or redirecting I/O."
+  `(let ((*standard-input* ,input)
+         (*standard-output* ,output))
+     ,@body))
