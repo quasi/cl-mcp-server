@@ -3,12 +3,13 @@
 
 (defpackage #:cl-mcp-server-tests
   (:use #:cl #:fiveam)
-  (:export #:run-all-tests))
+  (:export #:run-tests))
 
 (in-package #:cl-mcp-server-tests)
 
 (def-suite cl-mcp-server-tests
   :description "All tests for CL-MCP-Server")
 
-(defun run-all-tests ()
+(defun run-tests ()
+  "Run all CL-MCP-Server tests."
   (run! 'cl-mcp-server-tests))
