@@ -12,7 +12,7 @@
     ("version" . "0.1.0"))
   "Server identification for MCP initialize response.")
 
-(defparameter *protocol-version* "2024-11-05"
+(defparameter *protocol-version* "2025-06-18"
   "MCP protocol version supported by this server.")
 
 (defvar *server-session* nil
@@ -25,11 +25,12 @@
 (defun handle-initialize (id)
   "Handle the initialize request.
 Returns server info and capabilities."
-  (make-success-response
-   :id id
-   :result `(("protocolVersion" . ,*protocol-version*)
-             ("serverInfo" . ,*server-info*)
-             ("capabilities" . (("tools" . ()))))))
+  (let ((empty-obj (make-hash-table :test #'equal)))
+    (make-success-response
+     :id id
+     :result `(("protocolVersion" . ,*protocol-version*)
+               ("serverInfo" . ,*server-info*)
+               ("capabilities" . (("tools" . ,empty-obj)))))))
 
 (defun handle-tools-list (id)
   "Handle the tools/list request.
@@ -113,20 +114,33 @@ Dispatches to the appropriate handler based on method."
 Reads JSON-RPC requests from INPUT and writes responses to OUTPUT.
 Maintains a session for the duration of the server run.
 Returns when EOF is reached on INPUT."
+  (format *error-output* "MCP Server starting main loop~%")
+  (force-output *error-output*)
   (let ((*server-session* (make-session)))
     (with-session (*server-session*)
       (loop
         (handler-case
-            (let ((request (read-message input)))
-              ;; EOF - exit the loop
-              (unless request
-                (return))
-              ;; Process request and send response
-              (let ((response (handle-request request)))
-                (when response
-                  (write-message response output))))
+            (progn
+              (format *error-output* "Waiting for message...~%")
+              (force-output *error-output*)
+              (let ((request (read-message input)))
+                ;; EOF - exit the loop
+                (unless request
+                  (format *error-output* "EOF received, exiting~%")
+                  (force-output *error-output*)
+                  (return))
+                (format *error-output* "Received request: ~a~%" (request-method request))
+                (force-output *error-output*)
+                ;; Process request and send response
+                (let ((response (handle-request request)))
+                  (when response
+                    (format *error-output* "Sending response~%")
+                    (force-output *error-output*)
+                    (write-message response output)))))
           ;; Handle parse/protocol errors
           (json-rpc-error (c)
+            (format *error-output* "JSON-RPC error: ~a~%" c)
+            (force-output *error-output*)
             (write-message
              (make-error-response
               :id nil
@@ -135,6 +149,8 @@ Returns when EOF is reached on INPUT."
              output))
           ;; Handle unexpected errors
           (error (c)
+            (format *error-output* "Unexpected error: ~a~%" c)
+            (force-output *error-output*)
             (write-message
              (make-error-response
               :id nil
