@@ -200,7 +200,7 @@ MIT License
 
 ## Authors
 
-- **Abhijit Rao** (quasi@quasilabs.com)
+- Abhijit Rao -> quasi (quasi@quasilabs.in)
 
 ## Changelog
 
