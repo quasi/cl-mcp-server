@@ -1,0 +1,11 @@
+# Canon metadata for tracking and tooling
+canon_meta:
+  infrastructure_version: "0.1.0"
+  created: 2026-01-22
+
+changelog:
+  - date: 2026-01-22
+    action: bootstrap
+    description: Initial Canon structure created from CLAUDE.md specifications
+
+checkpoints: []

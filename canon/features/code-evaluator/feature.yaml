@@ -1,0 +1,27 @@
+feature:
+  name: code-evaluator
+  version: 0.1.0
+  status: draft
+  description: |
+    Evaluates Common Lisp expressions in a controlled environment.
+    Captures return values (including multiple values), stdout, stderr.
+    Handles conditions gracefully using handler-bind/handler-case.
+    Supports reading multiple forms from a single code string.
+
+depends_on:
+  core: true
+  features:
+    - session-management
+    - error-handling
+
+contracts:
+  - evaluate-lisp-tool  # Main evaluation tool contract
+
+properties:
+  - evaluation-isolation
+  - output-capture
+
+scenarios:
+  - basic-evaluation    # Arithmetic, strings, lists, multiple values
+  - output-capture      # stdout, stderr, warnings
+  - definitions         # defun, defvar, defmacro, defclass

@@ -1,0 +1,34 @@
+canon:
+  name: cl-mcp-server
+  version: 0.1.0
+  description: |
+    Model Context Protocol (MCP) server implemented in Common Lisp.
+    Enables Claude to send Common Lisp code for evaluation in a running
+    Lisp instance, providing interactive Lisp development and execution.
+
+metadata:
+  created: 2026-01-22
+  updated: 2026-01-22
+  authors:
+    - Baba (quasi)
+
+features:
+  - name: mcp-protocol
+    status: draft
+    description: JSON-RPC 2.0 communication over stdio
+
+  - name: code-evaluator
+    status: draft
+    description: Common Lisp expression evaluation with safety controls
+
+  - name: session-management
+    status: draft
+    description: Persistent REPL environment with state tracking
+
+  - name: error-handling
+    status: draft
+    description: Condition capture and structured error reporting
+
+generation:
+  default_language: common-lisp
+  default_implementation: sbcl

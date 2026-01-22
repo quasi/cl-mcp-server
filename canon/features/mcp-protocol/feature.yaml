@@ -1,0 +1,26 @@
+feature:
+  name: mcp-protocol
+  version: 0.1.0
+  status: draft
+  description: |
+    JSON-RPC 2.0 communication layer implementing the Model Context Protocol.
+    Handles message parsing, routing, and response generation over stdio transport.
+    Implements MCP protocol version 2025-03-26.
+
+depends_on:
+  core: true
+  features: []
+
+contracts:
+  - initialization      # Initialize handshake
+  - tools-list          # Tool discovery
+  - tools-call          # Tool invocation
+  - transport           # Stdio transport specification
+
+properties:
+  - protocol-conformance
+  - message-integrity
+
+scenarios:
+  - initialization-handshake
+  - malformed-request

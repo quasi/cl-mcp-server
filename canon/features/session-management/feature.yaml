@@ -1,0 +1,24 @@
+feature:
+  name: session-management
+  version: 0.1.0
+  status: draft
+  description: |
+    Maintains persistent REPL-like environment across evaluations.
+    Tracks defined functions, macros, classes, variables, loaded systems.
+    Manages current package context. Provides list-definitions, reset-session,
+    and load-system tools for session control.
+
+depends_on:
+  core: true
+  features: []
+
+contracts:
+  - session-state       # What persists, state management tools
+
+properties:
+  - state-persistence
+  - package-context
+
+scenarios:
+  - state-persistence   # Definitions survive across evaluations
+  - session-reset       # Clear all state and start fresh

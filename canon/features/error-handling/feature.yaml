@@ -1,0 +1,24 @@
+feature:
+  name: error-handling
+  version: 0.1.0
+  status: draft
+  description: |
+    Captures and reports Lisp conditions in a structured format.
+    Preserves condition type (not just message text).
+    Captures warnings without stopping evaluation (muffle-warning).
+    Formats backtraces showing relevant user frames.
+    Uses handler-bind for non-unwinding condition capture.
+
+depends_on:
+  core: true
+  features: []
+
+contracts:
+  - condition-report    # Error/warning format specification
+
+properties:
+  - condition-capture
+  - backtrace-formatting
+
+scenarios:
+  - evaluation-errors   # undefined-function, type-error, etc.
