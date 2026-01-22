@@ -186,3 +186,43 @@
     (is-true (cl-mcp-server.evaluator:result-success-p result))
     (is (equal "" (cl-mcp-server.evaluator:result-stdout result)))
     (is (equal "" (cl-mcp-server.evaluator:result-stderr result)))))
+
+;;; ==========================================================================
+;;; Task 4: Warning Capture Tests
+;;; ==========================================================================
+
+(def-suite warning-capture-tests
+  :description "Tests for warning capture"
+  :in evaluator-tests)
+
+(in-suite warning-capture-tests)
+
+(test capture-simple-warning
+  "Test capturing a simple warning"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(warn \"Something might be wrong\")")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (= 1 (length (cl-mcp-server.evaluator:result-warnings result))))
+    (is (search "Something might be wrong"
+                (first (cl-mcp-server.evaluator:result-warnings result))))))
+
+(test capture-multiple-warnings
+  "Test capturing multiple warnings"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(warn \"Warning 1\") (warn \"Warning 2\") (warn \"Warning 3\")")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (= 3 (length (cl-mcp-server.evaluator:result-warnings result))))))
+
+(test warnings-with-successful-result
+  "Test that warnings don't prevent successful result"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(warn \"warning\") (+ 1 2)")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal '("3") (cl-mcp-server.evaluator:result-values result)))
+    (is (= 1 (length (cl-mcp-server.evaluator:result-warnings result))))))
+
+(test no-warnings
+  "Test that code without warnings has empty warnings list"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (null (cl-mcp-server.evaluator:result-warnings result)))))
