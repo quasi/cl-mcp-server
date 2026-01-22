@@ -25,26 +25,26 @@ This documentation follows the [Diátaxis framework](https://diataxis.fr/) for c
 
 **Task-oriented guides** for solving specific problems:
 
-- Coming soon: How to switch packages
-- Coming soon: How to load Quicklisp systems
-- Coming soon: How to handle errors gracefully
-- Coming soon: Troubleshooting common issues
+- [How to Switch Packages](how-to/switch-packages.md) - Work in different package namespaces
+- [How to Load Quicklisp Systems](how-to/load-quicklisp-systems.md) - Use Common Lisp libraries
+- [How to Handle Errors Gracefully](how-to/handle-errors-gracefully.md) - Write robust error-handling code
+- [Troubleshooting Common Issues](how-to/troubleshooting.md) - Diagnose and fix problems
 
 ### 💡 Explanation
 
 **Understanding-oriented articles** that build conceptual knowledge:
 
 - [Architecture](explanation/architecture.md) - How CL-MCP-Server works under the hood
-- Coming soon: Why persistent sessions?
-- Coming soon: The Lisp condition system
+- [Why Persistent Sessions?](explanation/persistent-sessions.md) - Design rationale for stateful REPL
+- [The Lisp Condition System](explanation/condition-system.md) - Understanding error handling
 
 ### 📖 Reference
 
 **Information-oriented specifications** for lookup:
 
 - [evaluate-lisp Tool](reference/evaluate-lisp.md) - Complete API specification
-- Coming soon: MCP protocol details
-- Coming soon: Configuration options
+- [MCP Protocol Details](reference/mcp-protocol.md) - JSON-RPC wire protocol
+- [Configuration Options](reference/configuration.md) - Setup and deployment
 
 ## Quick Links
 
