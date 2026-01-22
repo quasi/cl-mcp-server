@@ -301,3 +301,58 @@
     (is-false (cl-mcp-server.evaluator:result-success-p result))
     (is (= 1 (length (cl-mcp-server.evaluator:result-warnings result))))
     (is (stringp (cl-mcp-server.evaluator:result-error result)))))
+
+;;; ==========================================================================
+;;; Task 6: Result Formatting Tests
+;;; ==========================================================================
+
+(def-suite result-formatting-tests
+  :description "Tests for formatting results for MCP"
+  :in evaluator-tests)
+
+(in-suite result-formatting-tests)
+
+(test format-simple-result
+  "Test formatting a simple successful result"
+  (let* ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)"))
+         (formatted (cl-mcp-server.evaluator:format-result result)))
+    (is (stringp formatted))
+    (is (search "=> 3" formatted))))
+
+(test format-multiple-values-result
+  "Test formatting a result with multiple values"
+  (let* ((result (cl-mcp-server.evaluator:evaluate-code "(values 1 2 3)"))
+         (formatted (cl-mcp-server.evaluator:format-result result)))
+    (is (search "=> 1" formatted))
+    (is (search "=> 2" formatted))
+    (is (search "=> 3" formatted))))
+
+(test format-result-with-output
+  "Test formatting a result with stdout output"
+  (let* ((result (cl-mcp-server.evaluator:evaluate-code
+                  "(princ \"hello\") 42"))
+         (formatted (cl-mcp-server.evaluator:format-result result)))
+    (is (search "hello" formatted))
+    (is (search "=> 42" formatted))))
+
+(test format-result-with-warnings
+  "Test formatting a result with warnings"
+  (let* ((result (cl-mcp-server.evaluator:evaluate-code
+                  "(warn \"be careful\") :ok"))
+         (formatted (cl-mcp-server.evaluator:format-result result)))
+    (is (search "Warning" formatted))
+    (is (search "be careful" formatted))
+    (is (search "=> :OK" formatted))))
+
+(test format-error-result
+  "Test formatting an error result"
+  (let* ((result (cl-mcp-server.evaluator:evaluate-code "(error \"oops\")"))
+         (formatted (cl-mcp-server.evaluator:format-result result)))
+    (is (search "[ERROR]" formatted))
+    (is (search "oops" formatted))))
+
+(test format-no-values-result
+  "Test formatting a result with no values"
+  (let* ((result (cl-mcp-server.evaluator:evaluate-code "(values)"))
+         (formatted (cl-mcp-server.evaluator:format-result result)))
+    (is (search "; No values" formatted))))

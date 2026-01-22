@@ -121,3 +121,33 @@ Only the values from the last form are returned."
      :stderr (get-output-stream-string stderr-capture)
      :warnings (nreverse warnings-list)
      :error-info error-info)))
+
+;;; ==========================================================================
+;;; Result Formatting for MCP
+;;; ==========================================================================
+
+(defun format-result (result)
+  "Format an EVALUATION-RESULT as a human-readable string for MCP.
+Includes stdout output, warnings, return values, and errors."
+  (with-output-to-string (s)
+    ;; Output section
+    (let ((stdout (result-stdout result)))
+      (unless (string= "" stdout)
+        (write-string stdout s)
+        (unless (char= #\Newline (char stdout (1- (length stdout))))
+          (terpri s))))
+    ;; Stderr section (if any)
+    (let ((stderr (result-stderr result)))
+      (unless (string= "" stderr)
+        (format s "[stderr] ~a~%" stderr)))
+    ;; Warnings section
+    (dolist (warning (result-warnings result))
+      (format s "[Warning] ~a~%" warning))
+    ;; Values or error
+    (if (result-success-p result)
+        (let ((values (result-values result)))
+          (if values
+              (dolist (val values)
+                (format s "=> ~a~%" val))
+              (format s "; No values~%")))
+        (write-string (result-error result) s))))
