@@ -114,5 +114,38 @@ Returns a list of alists with name, description, and inputSchema."
          (error (c)
            (format nil "Error loading system ~a: ~a" system-name c)))))))
 
+;;; ==========================================================================
+;;; Tool Argument Validation
+;;; ==========================================================================
+
+(defun validate-tool-args (args schema)
+  "Validate ARGS against the tool's input SCHEMA.
+ARGS is an alist of argument names to values.
+SCHEMA is a JSON Schema object (as an alist).
+Signals INVALID-PARAMS if required arguments are missing.
+Returns T if validation passes."
+  (let ((required (cdr (assoc "required" schema :test #'string=))))
+    (dolist (req-name required)
+      (unless (assoc req-name args :test #'string=)
+        (error 'cl-mcp-server.conditions:invalid-params
+               :message (format nil "Missing required argument: ~a" req-name)))))
+  t)
+
+;;; ==========================================================================
+;;; Tool Calling
+;;; ==========================================================================
+
+(defun call-tool (name args session)
+  "Call tool NAME with ARGS in the context of SESSION.
+Signals METHOD-NOT-FOUND if the tool doesn't exist.
+Signals INVALID-PARAMS if required arguments are missing.
+Returns the result string from the tool handler."
+  (let ((tool (get-tool name)))
+    (unless tool
+      (error 'cl-mcp-server.conditions:method-not-found
+             :message (format nil "Tool not found: ~a" name)))
+    (validate-tool-args args (tool-input-schema tool))
+    (funcall (tool-handler tool) args session)))
+
 ;; Initialize built-in tools on load
 (define-builtin-tools)
