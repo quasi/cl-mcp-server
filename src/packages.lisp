@@ -80,16 +80,20 @@
    #:with-session))
 
 (defpackage #:cl-mcp-server.evaluator
-  (:use #:cl #:cl-mcp-server.session)
+  (:use #:cl
+        #:cl-mcp-server.session
+        #:cl-mcp-server.error-format)
   (:export
    #:evaluate-code
    #:evaluation-result
+   #:make-evaluation-result
    #:result-values
    #:result-stdout
    #:result-stderr
    #:result-warnings
    #:result-error
-   #:result-success-p))
+   #:result-success-p
+   #:format-result))
 
 (defpackage #:cl-mcp-server.tools
   (:use #:cl
