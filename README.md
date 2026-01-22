@@ -185,12 +185,6 @@ sbcl --load cl-mcp-server.asd \
 
 **Status**: Working. Alpa (human testing required).  proof-of-concept. The core functionality is working and tested, but the API may change.
 
-**Next Steps**:
-- Additional tools (load-system, list-definitions, reset-session)
-- Package management improvements
-- Enhanced error recovery
-- Performance optimizations
-
 ## Contributing
 
 Contributions are welcome! Please:
