@@ -102,9 +102,16 @@
   (:export
    #:*tools*
    #:tool-definition
+   #:tool-name
+   #:tool-description
+   #:tool-input-schema
+   #:tool-handler
+   #:register-tool
    #:get-tool
+   #:list-tools
+   #:tools-for-mcp
    #:call-tool
-   #:list-tools))
+   #:validate-tool-args))
 
 (defpackage #:cl-mcp-server
   (:use #:cl

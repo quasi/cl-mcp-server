@@ -37,6 +37,7 @@
                  (:file "transport-tests")
                  (:file "session-tests")
                  (:file "evaluator-tests")
+                 (:file "tools-tests")
                  (:file "integration-tests")
                  (:file "encoding-tests"))))
   :perform (asdf:test-op (o c)
