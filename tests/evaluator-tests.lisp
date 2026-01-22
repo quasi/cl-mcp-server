@@ -226,3 +226,78 @@
   (let ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)")))
     (is-true (cl-mcp-server.evaluator:result-success-p result))
     (is (null (cl-mcp-server.evaluator:result-warnings result)))))
+
+;;; ==========================================================================
+;;; Task 5: Error Handling Tests
+;;; ==========================================================================
+
+(def-suite error-handling-tests
+  :description "Tests for error handling during evaluation"
+  :in evaluator-tests)
+
+(in-suite error-handling-tests)
+
+(test handle-undefined-function
+  "Test handling undefined function errors"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(nonexistent-function 1 2 3)")))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (null (cl-mcp-server.evaluator:result-values result)))
+    (is (stringp (cl-mcp-server.evaluator:result-error result)))
+    (is (search "UNDEFINED-FUNCTION"
+                (cl-mcp-server.evaluator:result-error result)))))
+
+(test handle-unbound-variable
+  "Test handling unbound variable errors"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "nonexistent-variable")))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (stringp (cl-mcp-server.evaluator:result-error result)))
+    (is (search "UNBOUND-VARIABLE"
+                (cl-mcp-server.evaluator:result-error result)))))
+
+(test handle-type-error
+  "Test handling type errors"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(car 123)")))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (stringp (cl-mcp-server.evaluator:result-error result)))
+    (is (search "TYPE-ERROR"
+                (cl-mcp-server.evaluator:result-error result)))))
+
+(test handle-division-by-zero
+  "Test handling division by zero"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(/ 10 0)")))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (stringp (cl-mcp-server.evaluator:result-error result)))
+    (is (search "DIVISION-BY-ZERO"
+                (cl-mcp-server.evaluator:result-error result)))))
+
+(test handle-reader-error
+  "Test handling reader errors (malformed input)"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2")))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (stringp (cl-mcp-server.evaluator:result-error result)))))
+
+(test handle-reader-error-extra-parens
+  "Test handling extra closing parentheses"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2))")))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (stringp (cl-mcp-server.evaluator:result-error result)))))
+
+(test error-preserves-output
+  "Test that output before error is still captured"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(princ \"before error\") (error \"intentional error\")")))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal "before error" (cl-mcp-server.evaluator:result-stdout result)))
+    (is (stringp (cl-mcp-server.evaluator:result-error result)))))
+
+(test error-preserves-warnings
+  "Test that warnings before error are still captured"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(warn \"warning before error\") (error \"intentional error\")")))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (= 1 (length (cl-mcp-server.evaluator:result-warnings result))))
+    (is (stringp (cl-mcp-server.evaluator:result-error result)))))
