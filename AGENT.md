@@ -66,6 +66,92 @@ sbcl
 * (in-package :cl-mcp-server)
 ```
 
+## Interactive Development with the Lisp MCP Server
+
+**When the `lisp` MCP tools are available, prefer interactive incremental development over edit-compile-run cycles.**
+
+### Detecting Availability
+
+Check if these tools are available in your session:
+- `mcp__lisp__evaluate-lisp` - Evaluate Common Lisp code
+- `mcp__lisp__load-system` - Load ASDF systems
+- `mcp__lisp__list-definitions` - List current definitions
+- `mcp__lisp__reset-session` - Reset to fresh state
+
+### Workflow: Incremental Development
+
+**Instead of**: Edit file → Save → Reload system → Test → Repeat
+
+**Do this**: Evaluate code directly → Test immediately → Iterate → Write to file when stable
+
+```
+1. Load the system once:     (ql:quickload :cl-mcp-server)
+2. Redefine functions:       (defun foo () ...)  ; immediate effect
+3. Test interactively:       (foo)               ; instant feedback
+4. Iterate until correct:    (defun foo () ...)  ; redefine as needed
+5. Write to file:            Only after code is working
+```
+
+### When to Use Interactive Evaluation
+
+| Situation | Approach |
+|-----------|----------|
+| Exploring/understanding code | Evaluate expressions directly |
+| Developing new function | Define in REPL, iterate, then write to file |
+| Debugging | Evaluate subexpressions, inspect values |
+| Testing changes | Redefine function, call it immediately |
+| Running tests | `(fiveam:run! 'suite-name)` |
+| Quick experiments | Evaluate without touching files |
+
+### When to Edit Files Directly
+
+| Situation | Approach |
+|-----------|----------|
+| Adding new files | Write tool (must update .asd too) |
+| Package/export changes | Edit file, then reload system |
+| Macro definitions | Edit file (macro callers need recompilation) |
+| Final implementation | Write stable code to file |
+| Structural changes | Edit files, reload affected systems |
+
+### Example Session
+
+```lisp
+;; 1. Load system
+(ql:quickload :cl-mcp-server)
+
+;; 2. Develop a helper function interactively
+(defun format-result (value)
+  (format nil "=> ~S" value))
+
+;; 3. Test it
+(format-result 42)
+;; => "=> 42"
+
+;; 4. Refine it
+(defun format-result (value)
+  (format nil "=> ~A" value))  ; Changed ~S to ~A
+
+;; 5. Test again
+(format-result "hello")
+;; => "=> hello"
+
+;; 6. Now write to file (only after it works)
+```
+
+### Benefits
+
+- **Faster feedback**: No startup overhead, instant results
+- **State preservation**: Definitions persist across evaluations
+- **Exploratory**: Inspect values, test edge cases interactively
+- **Reduced context switching**: Stay in the development flow
+
+### Caveats
+
+- **Macros**: Redefining a macro doesn't update existing callers; reload dependents
+- **Package changes**: Export list changes require file edit and reload
+- **Session state**: Use `reset-session` if state becomes inconsistent
+- **File sync**: Remember to write working code to files before ending session
+
 ## Code Conventions
 
 ### Package Structure
