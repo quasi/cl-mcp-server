@@ -103,3 +103,45 @@ Dispatches to the appropriate handler based on method."
          :id id
          :code -32603
          :message (format nil "Internal error: ~a" c))))))
+
+;;; ==========================================================================
+;;; Server Main Loop
+;;; ==========================================================================
+
+(defun run-server (&key (input *standard-input*) (output *standard-output*))
+  "Run the MCP server main loop.
+Reads JSON-RPC requests from INPUT and writes responses to OUTPUT.
+Maintains a session for the duration of the server run.
+Returns when EOF is reached on INPUT."
+  (let ((*server-session* (make-session)))
+    (with-session (*server-session*)
+      (loop
+        (handler-case
+            (let ((request (read-message input)))
+              ;; EOF - exit the loop
+              (unless request
+                (return))
+              ;; Process request and send response
+              (let ((response (handle-request request)))
+                (when response
+                  (write-message response output))))
+          ;; Handle parse/protocol errors
+          (json-rpc-error (c)
+            (write-message
+             (make-error-response
+              :id nil
+              :code (error-code c)
+              :message (error-message c))
+             output))
+          ;; Handle unexpected errors
+          (error (c)
+            (write-message
+             (make-error-response
+              :id nil
+              :code -32603
+              :message (format nil "Internal error: ~a" c))
+             output)))))))
+
+(defun start ()
+  "Start the MCP server. Reads from stdin, writes to stdout."
+  (run-server))

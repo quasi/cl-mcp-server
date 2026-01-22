@@ -124,4 +124,6 @@
   (:shadowing-import-from #:cl-mcp-server.conditions #:parse-error)
   (:export
    #:start
-   #:*server-info*))
+   #:run-server
+   #:*server-info*
+   #:*server-session*))

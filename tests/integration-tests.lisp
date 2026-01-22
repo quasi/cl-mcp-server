@@ -162,3 +162,33 @@
                    :params nil))
          (response (cl-mcp-server::handle-request request)))
     (is (null response))))
+
+;;; ==========================================================================
+;;; Server Full Session Tests
+;;; ==========================================================================
+
+(test server-full-session
+  "Test a full MCP session from initialize through tool calls"
+  (let ((input (make-string-input-stream
+                (format nil "~{~a~%~}"
+                        '("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}"
+                          "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+                          "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}"
+                          "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"evaluate-lisp\",\"arguments\":{\"code\":\"(+ 1 2)\"}}}"))))
+        (output (make-string-output-stream)))
+    (cl-mcp-server:run-server :input input :output output)
+    (let* ((output-str (get-output-stream-string output))
+           (lines (remove-if #'zerop
+                             (mapcar #'length
+                                     (split-by-newline output-str)))))
+      ;; Should have 3 responses (initialize, tools/list, tools/call)
+      ;; Notification doesn't generate a response
+      (is (= 3 (length lines))))))
+
+(defun split-by-newline (string)
+  "Split STRING by newlines."
+  (loop with start = 0
+        for end = (position #\Newline string :start start)
+        collect (subseq string start (or end (length string)))
+        while end
+        do (setf start (1+ end))))
