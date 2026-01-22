@@ -1,0 +1,76 @@
+---
+# Context Manifest for mcp-protocol feature
+# Generated: 2026-01-22T08:39:55Z
+# Canon version: 0.1.0
+
+feature: mcp-protocol
+canon_version: 0.1.0
+status: draft
+
+summary: |
+  JSON-RPC 2.0 communication layer implementing the Model Context Protocol.
+  Handles message parsing, routing, and response generation over stdio transport.
+  Implements MCP protocol version 2025-03-26.
+
+  Core contracts: initialization handshake, tools/list discovery, tools/call invocation,
+  and stdio transport specification.
+
+# Essential files to understand this feature
+essential:
+  - path: ../../core/foundation/vocabulary.md
+    reason: Core terminology (MCP Server, Transport, Tool)
+    sections: ["MCP Server", "Transport", "Tool"]
+
+  - path: feature.yaml
+    reason: Feature metadata and dependencies
+
+  - path: vocabulary.md
+    reason: MCP-specific terms (JSON-RPC, Protocol Version, Capabilities)
+
+  - path: contracts/initialization.md
+    reason: First interaction - initialization handshake contract
+
+  - path: contracts/transport.md
+    reason: Communication channel specification (stdio)
+
+# Per-contract context (for targeted exploration)
+per_contract:
+  initialization:
+    - path: contracts/initialization.md
+      reason: Initialize handshake definition
+    - path: scenarios/initialization-handshake.md
+      reason: Example initialization flow
+
+  tools-list:
+    - path: contracts/tools-list.md
+      reason: Tool discovery contract
+
+  tools-call:
+    - path: contracts/tools-call.md
+      reason: Tool invocation contract
+
+  transport:
+    - path: contracts/transport.md
+      reason: Stdio transport specification
+
+# Additional reference materials
+reference:
+  - path: ../../core/foundation/invariants.md
+    reason: System-wide invariants (INV-001 Request-Response, INV-005 Protocol Conformance)
+    sections: ["INV-001", "INV-005"]
+
+  - path: scenarios/malformed-request.md
+    reason: Error handling behavior for invalid JSON-RPC
+
+# Cross-feature dependencies
+depends_on:
+  core: true
+  features: []
+
+# Properties (not yet documented, but defined in feature.yaml)
+properties:
+  - protocol-conformance  # JSON-RPC 2.0 and MCP spec compliance
+  - message-integrity     # All messages well-formed and complete
+
+# Estimated token count (rough approximation: bytes / 4)
+token_estimate: 5954

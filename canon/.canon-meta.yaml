@@ -3,9 +3,72 @@ canon_meta:
   infrastructure_version: "0.1.0"
   created: 2026-01-22
 
+tracking:
+  last_check: 2026-01-22T08:45:26Z
+  last_modified: 2026-01-22T08:47:19Z
+
 changelog:
   - date: 2026-01-22
     action: bootstrap
     description: Initial Canon structure created from CLAUDE.md specifications
 
+  - date: 2026-01-22
+    action: check
+    type: health-check
+    issues_found: 0
+    warnings_found: 4
+    summary: "First health check: Canon healthy, 4 minor warnings (missing decisions dir, empty properties, no context manifests)"
+
+  - date: 2026-01-22
+    action: fix
+    type: auto-fix
+    fixed: ["core/decisions directory created"]
+    summary: "Applied automatic fixes from health check"
+
+  - date: 2026-01-22
+    action: update
+    type: context-manifests
+    summary: "Generated .context.yaml for all 4 features; removed empty placeholder properties directories"
+    details:
+      - "Created features/mcp-protocol/.context.yaml (~5954 tokens)"
+      - "Created features/code-evaluator/.context.yaml (~5622 tokens)"
+      - "Created features/session-management/.context.yaml (~4665 tokens)"
+      - "Created features/error-handling/.context.yaml (~4378 tokens)"
+      - "Removed empty properties/ placeholder directories (properties defined but not yet documented)"
+
+  - date: 2026-01-22
+    action: update
+    type: documentation
+    artifact: README-CANON.md
+    summary: "Added Context Manifests section documenting .context.yaml usage"
+    details:
+      - "Explained purpose of context manifests (efficient navigation, token optimization)"
+      - "Documented structure (essential, per_contract, reference, token_estimate)"
+      - "Provided usage examples for agents"
+      - "Clarified when to use context manifests"
+
 checkpoints: []
+
+issues_history:
+  - date: 2026-01-22
+    check_id: chk-001
+    issues_found: 0
+    warnings_found: 4
+    warnings:
+      - "STRUCT-001: Missing decisions directory"
+      - "STRUCT-002: Properties directories empty (placeholders)"
+      - "CONTEXT-001: No .context.yaml files"
+      - "CONTEXT-002: README-CANON.md lacks context manifest docs"
+    fixes_applied: 1
+    plan_file: none
+
+  - date: 2026-01-22
+    check_id: chk-002
+    issues_found: 0
+    warnings_found: 0
+    summary: "Context manifests generated for all features; properties placeholder cleanup"
+    fixes_applied: 5
+    actions:
+      - "Generated 4 context manifests"
+      - "Removed empty properties directories"
+    plan_file: none

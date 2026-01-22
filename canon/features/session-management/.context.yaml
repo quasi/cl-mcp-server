@@ -1,0 +1,60 @@
+---
+# Context Manifest for session-management feature
+# Generated: 2026-01-22T08:39:55Z
+# Canon version: 0.1.0
+
+feature: session-management
+canon_version: 0.1.0
+status: draft
+
+summary: |
+  Maintains persistent REPL-like environment across evaluations.
+  Tracks defined functions, macros, classes, variables, loaded systems.
+  Manages current package context. Provides list-definitions, reset-session,
+  and load-system tools for session control.
+
+  Enables incremental development by preserving state between evaluations.
+
+# Essential files to understand this feature
+essential:
+  - path: ../../core/foundation/vocabulary.md
+    reason: Core terminology (Session, Package, Evaluation)
+    sections: ["Session", "Package", "Evaluation"]
+
+  - path: feature.yaml
+    reason: Feature metadata and dependencies
+
+  - path: vocabulary.md
+    reason: Session-specific terms (Session State, Definition, Package Context)
+
+  - path: contracts/session-state.md
+    reason: State persistence contract and session control tools
+
+# Per-contract context (for targeted exploration)
+per_contract:
+  session-state:
+    - path: contracts/session-state.md
+      reason: Session state definition and management tools
+    - path: scenarios/state-persistence.md
+      reason: State survival across evaluations
+    - path: scenarios/session-reset.md
+      reason: Session reset behavior
+
+# Additional reference materials
+reference:
+  - path: ../../core/foundation/invariants.md
+    reason: System invariants (INV-003 Session State Persistence)
+    sections: ["INV-003"]
+
+# Cross-feature dependencies
+depends_on:
+  core: true
+  features: []
+
+# Properties (not yet documented, but defined in feature.yaml)
+properties:
+  - state-persistence  # Definitions survive across evaluations
+  - package-context    # Package state is maintained correctly
+
+# Estimated token count (rough approximation: bytes / 4)
+token_estimate: 4665

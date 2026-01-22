@@ -25,6 +25,44 @@ Each feature contains:
 - `scenarios/` - Concrete behavioral examples
 - `verification/` - Test specifications
 - `decisions/` - Design decisions (ADR format)
+- `.context.yaml` - Context manifest for efficient navigation (see below)
+
+### Context Manifests
+
+Each feature has a `.context.yaml` file that provides efficient navigation for agents working with the Canon.
+
+**Purpose**: Context manifests help agents load exactly what they need without reading the entire Canon, optimizing for token usage and comprehension.
+
+**Location**: `features/{feature-name}/.context.yaml`
+
+**What They Contain**:
+- `essential` - Minimum files to understand the feature
+- `per_contract` - Targeted paths for specific contracts
+- `reference` - Additional materials (invariants, dependencies)
+- `token_estimate` - Approximate token count for the feature
+- `summary` - Quick feature overview
+
+**Usage Example**:
+
+```yaml
+# To understand mcp-protocol feature:
+essential:
+  - core/foundation/vocabulary.md  # Read these first
+  - feature.yaml
+  - contracts/initialization.md
+
+# To work on initialization contract specifically:
+per_contract:
+  initialization:
+    - contracts/initialization.md
+    - scenarios/initialization-handshake.md
+```
+
+**When to Use Context Manifests**:
+- Exploring a new feature for the first time
+- Working on a specific contract within a feature
+- Planning token budget for feature understanding
+- Finding cross-feature dependencies quickly
 
 ### Status Meanings
 

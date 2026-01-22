@@ -1,0 +1,70 @@
+---
+# Context Manifest for code-evaluator feature
+# Generated: 2026-01-22T08:39:55Z
+# Canon version: 0.1.0
+
+feature: code-evaluator
+canon_version: 0.1.0
+status: draft
+
+summary: |
+  Evaluates Common Lisp expressions in a controlled environment.
+  Captures return values (including multiple values), stdout, stderr.
+  Handles conditions gracefully using handler-bind/handler-case.
+  Supports reading multiple forms from a single code string.
+
+  Primary contract: evaluate-lisp tool for code execution with comprehensive output capture.
+
+# Essential files to understand this feature
+essential:
+  - path: ../../core/foundation/vocabulary.md
+    reason: Core terminology (Evaluation, Session, Condition)
+    sections: ["Evaluation", "Session", "Condition"]
+
+  - path: feature.yaml
+    reason: Feature metadata and dependencies
+
+  - path: vocabulary.md
+    reason: Evaluator-specific terms (Return Value, Multiple Values, Output Capture)
+
+  - path: contracts/evaluate-lisp-tool.md
+    reason: Main evaluation tool contract
+
+# Per-contract context (for targeted exploration)
+per_contract:
+  evaluate-lisp-tool:
+    - path: contracts/evaluate-lisp-tool.md
+      reason: Evaluation tool definition
+    - path: scenarios/basic-evaluation.md
+      reason: Simple evaluation examples (arithmetic, strings, lists)
+    - path: scenarios/output-capture.md
+      reason: Stdout/stderr/warning capture examples
+    - path: scenarios/definitions.md
+      reason: defun, defvar, defmacro, defclass examples
+
+# Additional reference materials
+reference:
+  - path: ../../core/foundation/invariants.md
+    reason: System invariants (INV-002 Server Stability, INV-004 Output Stream Separation)
+    sections: ["INV-002", "INV-004"]
+
+  - path: ../session-management/contracts/session-state.md
+    reason: Session persistence dependency
+
+  - path: ../error-handling/contracts/condition-report.md
+    reason: Error handling integration
+
+# Cross-feature dependencies
+depends_on:
+  core: true
+  features:
+    - session-management  # Persistent REPL environment
+    - error-handling      # Condition capture and reporting
+
+# Properties (not yet documented, but defined in feature.yaml)
+properties:
+  - evaluation-isolation  # Safe execution without affecting server stability
+  - output-capture        # Complete capture of all output streams
+
+# Estimated token count (rough approximation: bytes / 4)
+token_estimate: 5622

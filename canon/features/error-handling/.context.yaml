@@ -1,0 +1,59 @@
+---
+# Context Manifest for error-handling feature
+# Generated: 2026-01-22T08:39:55Z
+# Canon version: 0.1.0
+
+feature: error-handling
+canon_version: 0.1.0
+status: draft
+
+summary: |
+  Captures and reports Lisp conditions in a structured format.
+  Preserves condition type (not just message text).
+  Captures warnings without stopping evaluation (muffle-warning).
+  Formats backtraces showing relevant user frames.
+  Uses handler-bind for non-unwinding condition capture.
+
+  Enables graceful error recovery without server crashes.
+
+# Essential files to understand this feature
+essential:
+  - path: ../../core/foundation/vocabulary.md
+    reason: Core terminology (Condition)
+    sections: ["Condition"]
+
+  - path: feature.yaml
+    reason: Feature metadata and dependencies
+
+  - path: vocabulary.md
+    reason: Error-handling specific terms (Condition Type, Backtrace, Handler)
+
+  - path: contracts/condition-report.md
+    reason: Error/warning format specification
+
+# Per-contract context (for targeted exploration)
+per_contract:
+  condition-report:
+    - path: contracts/condition-report.md
+      reason: Condition reporting format
+    - path: scenarios/evaluation-errors.md
+      reason: Examples of various error types (undefined-function, type-error, etc.)
+
+# Additional reference materials
+reference:
+  - path: ../../core/foundation/invariants.md
+    reason: System invariants (INV-002 Server Stability, INV-006 Condition Type Preservation)
+    sections: ["INV-002", "INV-006"]
+
+# Cross-feature dependencies
+depends_on:
+  core: true
+  features: []
+
+# Properties (not yet documented, but defined in feature.yaml)
+properties:
+  - condition-capture      # All conditions are caught and reported
+  - backtrace-formatting   # Readable stack traces with user frames
+
+# Estimated token count (rough approximation: bytes / 4)
+token_estimate: 4378
