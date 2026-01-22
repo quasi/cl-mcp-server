@@ -84,20 +84,35 @@
 
 (defun convert-for-json (value)
   "Recursively convert VALUE for JSON encoding.
-Alists become hash tables, lists of alists become lists of hash tables."
+Alists become hash tables, vectors stay as vectors (arrays).
+Lists become vectors (arrays). Use hash-table for empty objects.
+Use :null for JSON null, nil becomes empty array."
   (cond
-    ;; Null stays null
-    ((null value) value)
-    ;; Alist -> hash table
+    ;; Explicit null keyword
+    ((eq value :null) :null)
+    ;; Explicit false
+    ((eq value :false) nil)
+    ;; nil/empty list becomes empty vector (JSON [])
+    ((null value) #())
+    ;; Strings pass through (must check before vectorp since strings are vectors)
+    ((stringp value) value)
+    ;; Numbers pass through
+    ((numberp value) value)
+    ;; Hash tables pass through
+    ((hash-table-p value) value)
+    ;; Vectors - convert elements (but not strings, handled above)
+    ((vectorp value)
+     (map 'vector #'convert-for-json value))
+    ;; Alists become hash tables (JSON objects)
     ((alistp value)
      (let ((ht (make-hash-table :test #'equal)))
        (dolist (pair value ht)
          (setf (gethash (car pair) ht)
                (convert-for-json (cdr pair))))))
-    ;; List (but not alist) -> convert each element
+    ;; Other lists become vectors (JSON arrays)
     ((listp value)
-     (mapcar #'convert-for-json value))
-    ;; Atoms stay as-is
+     (map 'vector #'convert-for-json value))
+    ;; Atoms pass through
     (t value)))
 
 (defun encode-response (response)
@@ -113,9 +128,10 @@ Alists become hash tables, lists of alists become lists of hash tables."
             (setf (gethash "code" err-ht) (getf (response-error response) :code))
             (setf (gethash "message" err-ht) (getf (response-error response) :message))
             (when (getf (response-error response) :data)
-              (setf (gethash "data" err-ht) (getf (response-error response) :data)))
+              (setf (gethash "data" err-ht)
+                    (convert-for-json (getf (response-error response) :data))))
             (setf (gethash "error" ht) err-ht))
-          ;; Success response - recursively convert result
+          ;; Success response
           (setf (gethash "result" ht)
                 (convert-for-json (response-result response))))
       (yason:encode ht s))))
