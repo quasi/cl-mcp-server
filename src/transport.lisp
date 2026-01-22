@@ -7,12 +7,17 @@
   "Read a single JSON-RPC message from stream.
    Messages are newline-delimited JSON (NDJSON).
    Returns nil on EOF, json-rpc-request on success.
-   Signals parse-error or invalid-request on bad input."
-  (let ((line (read-line stream nil nil)))
-    (when line
+   Signals parse-error or invalid-request on bad input.
+   Skips empty lines while waiting for content."
+  (loop
+    (let ((line (read-line stream nil nil)))
+      ;; Actual EOF - return nil
+      (unless line
+        (return nil))
+      ;; Check for content
       (let ((trimmed (string-trim '(#\Space #\Tab #\Return) line)))
         (unless (zerop (length trimmed))
-          (cl-mcp-server.json-rpc:parse-message trimmed))))))
+          (return (cl-mcp-server.json-rpc:parse-message trimmed)))))))
 
 (defun write-message (response &optional (stream *standard-output*))
   "Write a JSON-RPC response to stream with newline delimiter."
