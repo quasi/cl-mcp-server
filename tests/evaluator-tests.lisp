@@ -128,3 +128,61 @@
   (let ((result (cl-mcp-server.evaluator:evaluate-code "(values)")))
     (is-true (cl-mcp-server.evaluator:result-success-p result))
     (is (null (cl-mcp-server.evaluator:result-values result)))))
+
+;;; ==========================================================================
+;;; Task 3: Output Capture Tests
+;;; ==========================================================================
+
+(def-suite output-capture-tests
+  :description "Tests for output stream capture"
+  :in evaluator-tests)
+
+(in-suite output-capture-tests)
+
+(test capture-stdout-print
+  "Test capturing stdout from print"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(print \"hello\")")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (search "hello" (cl-mcp-server.evaluator:result-stdout result)))))
+
+(test capture-stdout-princ
+  "Test capturing stdout from princ"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(princ \"hello\")")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal "hello" (cl-mcp-server.evaluator:result-stdout result)))))
+
+(test capture-stdout-format
+  "Test capturing stdout from format"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(format t \"Hello, ~a!\" \"world\")")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal "Hello, world!" (cl-mcp-server.evaluator:result-stdout result)))))
+
+(test capture-stdout-write-string
+  "Test capturing stdout from write-string"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(write-string \"line1\") (write-string \"line2\")")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal "line1line2" (cl-mcp-server.evaluator:result-stdout result)))))
+
+(test capture-stderr
+  "Test capturing stderr from *error-output*"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(format *error-output* \"error message\")")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal "error message" (cl-mcp-server.evaluator:result-stderr result)))))
+
+(test capture-both-streams
+  "Test capturing both stdout and stderr"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(princ \"out\") (format *error-output* \"err\")")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal "out" (cl-mcp-server.evaluator:result-stdout result)))
+    (is (equal "err" (cl-mcp-server.evaluator:result-stderr result)))))
+
+(test capture-no-output
+  "Test that code without output has empty stdout/stderr"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal "" (cl-mcp-server.evaluator:result-stdout result)))
+    (is (equal "" (cl-mcp-server.evaluator:result-stderr result)))))
