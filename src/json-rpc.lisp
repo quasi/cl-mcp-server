@@ -74,16 +74,31 @@
 
 ;;; Encoding
 
-(defun alist-to-hash-table (alist)
-  "Convert an alist to a hash table for yason encoding"
-  (let ((ht (make-hash-table :test #'equal)))
-    (dolist (pair alist ht)
-      (setf (gethash (car pair) ht)
-            (if (and (listp (cdr pair))
-                     (consp (car (cdr pair)))
-                     (stringp (caar (cdr pair))))
-                (alist-to-hash-table (cdr pair))
-                (cdr pair))))))
+(defun alistp (obj)
+  "Check if OBJ is an alist (list of (string . value) pairs)."
+  (and (listp obj)
+       (every (lambda (pair)
+                (and (consp pair)
+                     (stringp (car pair))))
+              obj)))
+
+(defun convert-for-json (value)
+  "Recursively convert VALUE for JSON encoding.
+Alists become hash tables, lists of alists become lists of hash tables."
+  (cond
+    ;; Null stays null
+    ((null value) value)
+    ;; Alist -> hash table
+    ((alistp value)
+     (let ((ht (make-hash-table :test #'equal)))
+       (dolist (pair value ht)
+         (setf (gethash (car pair) ht)
+               (convert-for-json (cdr pair))))))
+    ;; List (but not alist) -> convert each element
+    ((listp value)
+     (mapcar #'convert-for-json value))
+    ;; Atoms stay as-is
+    (t value)))
 
 (defun encode-response (response)
   "Encode a JSON-RPC response to a JSON string.
@@ -100,13 +115,9 @@
             (when (getf (response-error response) :data)
               (setf (gethash "data" err-ht) (getf (response-error response) :data)))
             (setf (gethash "error" ht) err-ht))
-          ;; Success response
+          ;; Success response - recursively convert result
           (setf (gethash "result" ht)
-                (if (and (listp (response-result response))
-                         (consp (car (response-result response)))
-                         (stringp (caar (response-result response))))
-                    (alist-to-hash-table (response-result response))
-                    (response-result response))))
+                (convert-for-json (response-result response))))
       (yason:encode ht s))))
 
 (defun encode-error (condition &optional id)
