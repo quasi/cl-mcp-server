@@ -64,17 +64,20 @@ Returns a list of alists with name, description, and inputSchema."
      ("properties" . (("code" . (("type" . "string")
                                  ("description" . "Common Lisp code to evaluate"))))))
    (lambda (args session)
-     (declare (ignore session))
      (let* ((code (cdr (assoc "code" args :test #'string=)))
             (result (evaluate-code code)))
+       ;; Track definitions in the session
+       (when (and session (result-definitions result))
+         (setf (session-definitions session)
+               (append (result-definitions result)
+                       (session-definitions session))))
        (format-result result))))
 
   ;; list-definitions: List definitions in the current session
   (register-tool
    "list-definitions"
    "List all definitions (functions, variables, macros) in the current session."
-   '(("type" . "object")
-     ("required" . ())
+   `(("type" . "object")
      ("properties" . (("type" . (("type" . "string")
                                  ("description" . "Optional filter: function, variable, or macro")
                                  ("enum" . ("function" "variable" "macro")))))))
@@ -88,9 +91,8 @@ Returns a list of alists with name, description, and inputSchema."
   (register-tool
    "reset-session"
    "Reset the session to a fresh state, clearing all definitions and loaded systems."
-   '(("type" . "object")
-     ("required" . ())
-     ("properties" . ()))
+   `(("type" . "object")
+     ("properties" . ,(make-hash-table :test #'equal)))
    (lambda (args session)
      (declare (ignore args))
      (cl-mcp-server.session:reset-session session)

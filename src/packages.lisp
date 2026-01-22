@@ -93,6 +93,7 @@
    #:result-warnings
    #:result-error
    #:result-success-p
+   #:result-definitions
    #:format-result))
 
 (defpackage #:cl-mcp-server.tools

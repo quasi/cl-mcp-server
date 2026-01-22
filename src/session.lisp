@@ -53,10 +53,34 @@ If TYPE is specified, only show definitions of that type."
 
 ;;; Session reset
 
+(defun unbind-definition (def)
+  "Unbind a single definition DEF, which is (type . name)."
+  (let ((type (car def))
+        (name (cdr def)))
+    (handler-case
+        (case type
+          ((:function :macro)
+           (fmakunbound name))
+          (:variable
+           (makunbound name))
+          ;; For classes, structs, methods - just remove function binding if any
+          ((:class :struct)
+           (when (fboundp name)
+             (fmakunbound name)))
+          ;; Methods are harder to remove individually, skip for now
+          (:method nil))
+      ;; Ignore errors during unbinding (e.g., already unbound)
+      (error () nil))))
+
 (defun reset-session (session)
   "Reset SESSION to a fresh state.
-Clears definitions and loaded systems, but preserves the current package.
+Unbinds all tracked definitions, clears definitions and loaded systems,
+but preserves the current package.
 Returns the session for chaining."
+  ;; Unbind all tracked definitions
+  (dolist (def (session-definitions session))
+    (unbind-definition def))
+  ;; Clear the tracking lists
   (setf (session-definitions session) nil)
   (setf (session-loaded-systems session) nil)
   session)

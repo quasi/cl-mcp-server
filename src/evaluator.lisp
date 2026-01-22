@@ -11,28 +11,31 @@
                               (:constructor %make-evaluation-result))
   "Result of evaluating Lisp code.
 Contains success status, return values, captured output streams,
-warnings encountered, and error information."
+warnings encountered, error information, and definitions made."
   (success-p nil :type boolean)
   (values nil :type list)
   (stdout "" :type string)
   (stderr "" :type string)
   (warnings nil :type list)
-  (error nil))
+  (error nil)
+  (definitions nil :type list))
 
-(defun make-evaluation-result (&key success-p values stdout stderr warnings error-info)
+(defun make-evaluation-result (&key success-p values stdout stderr warnings error-info definitions)
   "Create an evaluation result with proper defaults.
 SUCCESS-P indicates whether evaluation completed without errors.
 VALUES is a list of string representations of return values.
 STDOUT and STDERR capture printed output during evaluation.
 WARNINGS is a list of formatted warning strings.
-ERROR-INFO contains formatted error information when evaluation fails."
+ERROR-INFO contains formatted error information when evaluation fails.
+DEFINITIONS is a list of (type . name) pairs for definitions made."
   (%make-evaluation-result
    :success-p success-p
    :values values
    :stdout (or stdout "")
    :stderr (or stderr "")
    :warnings (or warnings nil)
-   :error (or error-info nil)))
+   :error (or error-info nil)
+   :definitions (or definitions nil)))
 
 ;;; ==========================================================================
 ;;; Value Formatting
@@ -52,6 +55,46 @@ to avoid runaway printing."
   "Format a list of values as strings.
 Returns a list of string representations."
   (mapcar #'format-value values))
+
+;;; ==========================================================================
+;;; Definition Detection
+;;; ==========================================================================
+
+(defvar *definition-forms*
+  '((defun . :function)
+    (defmacro . :macro)
+    (defvar . :variable)
+    (defparameter . :variable)
+    (defconstant . :variable)
+    (defclass . :class)
+    (defstruct . :struct)
+    (defgeneric . :function)
+    (defmethod . :method))
+  "Mapping of definition forms to their types.")
+
+(defun extract-definition (form)
+  "Extract definition info from FORM if it's a definition.
+Returns (type . name) or NIL if not a definition."
+  (when (and (consp form)
+             (symbolp (car form)))
+    (let ((def-type (cdr (assoc (car form) *definition-forms*))))
+      (when (and def-type (cdr form))
+        (let ((name (cadr form)))
+          ;; Handle defmethod's name extraction (might have qualifiers)
+          (when (eq def-type :method)
+            (setf name (if (listp name) (car name) name)))
+          ;; Handle defstruct's name (might be (name options...))
+          (when (and (eq def-type :struct) (listp name))
+            (setf name (car name)))
+          (when (symbolp name)
+            (cons def-type name)))))))
+
+(defun extract-definitions (forms)
+  "Extract all definitions from a list of FORMS.
+Returns a list of (type . name) pairs."
+  (loop for form in forms
+        for def = (extract-definition form)
+        when def collect def))
 
 ;;; ==========================================================================
 ;;; Code Reading
@@ -91,6 +134,7 @@ Returns an EVALUATION-RESULT containing:
 - Captured stderr output
 - Any warnings encountered
 - Error information (if evaluation failed)
+- Definitions made during evaluation
 
 All forms in CODE-STRING are read and evaluated in sequence.
 Only the values from the last form are returned."
@@ -99,7 +143,8 @@ Only the values from the last form are returned."
         (warnings-list nil)
         (result-values nil)
         (error-info nil)
-        (success-p nil))
+        (success-p nil)
+        (definitions nil))
     (handler-bind
         ((warning (lambda (c)
                     (push (format-warning c) warnings-list)
@@ -109,6 +154,8 @@ Only the values from the last form are returned."
                 (*error-output* stderr-capture)
                 (*trace-output* stderr-capture))
             (let ((forms (read-all-forms code-string)))
+              ;; Extract definitions before evaluation
+              (setf definitions (extract-definitions forms))
               (setf result-values (evaluate-forms forms))
               (setf success-p t)))
         (error (c)
@@ -120,7 +167,8 @@ Only the values from the last form are returned."
      :stdout (get-output-stream-string stdout-capture)
      :stderr (get-output-stream-string stderr-capture)
      :warnings (nreverse warnings-list)
-     :error-info error-info)))
+     :error-info error-info
+     :definitions (when success-p definitions))))
 
 ;;; ==========================================================================
 ;;; Result Formatting for MCP
