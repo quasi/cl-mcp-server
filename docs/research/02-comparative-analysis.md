@@ -157,29 +157,45 @@ The 40ants ecosystem struggles with MCP compliance due to Lisp conventions:
 
 ## Gap Analysis: cl-mcp-server
 
-### Critical Gaps (Should Address)
+### Re-evaluation: What Claude Already Has
 
-| Gap | Impact | Reference Implementation |
-|-----|--------|-------------------------|
-| No security model | High risk for arbitrary code execution | cl-ai-project's project-scoping |
-| No file tools | Limits agent capabilities | cl-ai-project's fs-* tools |
-| No search tools | Agent can't explore codebase | cl-ai-project's clgrep-search |
+**Critical insight**: Claude natively has file system access through its own tools (Read, Write, Edit, Grep, Glob). The MCP server does NOT need to duplicate these capabilities.
 
-### Important Gaps (Consider Adding)
+| Capability | Claude's Native Tools | MCP Server Needed? |
+|------------|----------------------|-------------------|
+| Read files | Read tool | **No** |
+| Write files | Write, Edit tools | **No** |
+| Search files | Grep, Glob tools | **No** |
+| Directory listing | Bash (ls) | **No** |
+| **Live evaluation** | None | **Yes** |
+| **Image introspection** | None | **Yes** |
+| **ASDF/Quicklisp loading** | None | **Yes** |
 
-| Gap | Impact | Reference Implementation |
-|-----|--------|-------------------------|
-| No HTTP transport | Limits deployment options | 40ants/mcp's transport abstraction |
-| No resources support | Can't expose file content via MCP | belyak's resource templates |
-| No prompts support | Can't guide agent behavior | belyak's prompt system |
+### Actual Gaps (Should Address)
 
-### Minor Gaps (Low Priority)
+| Gap | Impact | Notes |
+|-----|--------|-------|
+| Limited introspection | Claude can't query symbol info, callers, etc. | Phase A priority |
+| Basic error reporting | Errors are strings, not structured data | Phase C priority |
+| No CLOS inspection | Can't understand class hierarchies | Phase D priority |
+| Limited ASDF integration | Only `load-system`, no dependency info | Phase E priority |
 
-| Gap | Impact | Reference |
-|-----|--------|-----------|
-| No structure-aware editing | Less precise code changes | cl-ai-project's eclector integration |
-| No HyperSpec lookup | Agent must search externally | cl-ai-project's clhs-lookup |
-| No test runner | Manual test invocation | cl-ai-project's run-tests |
+### Not Gaps (Previously Misidentified)
+
+| "Gap" | Why It's Not a Gap |
+|-------|-------------------|
+| No file tools | Claude has Read, Write, Edit tools natively |
+| No search tools | Claude has Grep, Glob tools natively |
+| No security model | Trust model: Claude is trusted; MCP provides image access, not file access |
+| No resources support | File content exposure via MCP is redundant - Claude reads files directly |
+
+### Low Priority Considerations
+
+| Item | Impact | Notes |
+|------|--------|-------|
+| HTTP transport | Deployment flexibility | STDIO sufficient for local Claude Code |
+| HyperSpec lookup | Convenience | Claude can web search |
+| Test runner | Automation | Can use `evaluate-lisp` with test forms |
 
 ---
 
@@ -222,31 +238,20 @@ Using MCP 2025-06-18 ensures compatibility with latest Claude features.
 
 ### From cl-ai-project/cl-mcp
 
-1. **Project-Scoped Security**
-   ```lisp
-   (defun ensure-project-path (path)
-     "Validate PATH is within project root"
-     ...)
-   ```
+1. **Rich Introspection Tools**
+   - Symbol description with full metadata
+   - Cross-reference tools (who-calls, who-references)
+   - CLOS class inspection
 
-2. **File Tools with Filtering**
-   - Hidden file exclusion (`.git`, `.cache`)
-   - Extension filtering (`.fasl`, compiled files)
-   - Audit logging
-
-3. **Lisp-Aware Code Search**
-   - Search by form type (defun, defmacro, defvar)
-   - Return signatures not just line numbers
+2. **Structured Error Data**
+   - Condition type classification
+   - Backtrace with source locations
+   - Available restarts
 
 ### From 40ants/mcp
 
-1. **Transport Abstraction**
-   ```lisp
-   (defgeneric start-loop (transport message-handler))
-   (defgeneric send-message (transport message))
-   ```
+1. **Declarative Tool Definition**
 
-2. **Declarative Tool Definition**
    ```lisp
    (define-tool (api name) (args...)
      (:summary "...")
@@ -254,12 +259,27 @@ Using MCP 2025-06-18 ensures compatibility with latest Claude features.
      body)
    ```
 
-### From belyak/mcp-srv-lisp
+   Reduces boilerplate for adding new tools.
 
-1. **Complete MCP Features**
-   - Resources with URI templates
-   - Prompts with arguments
+### From Agent-Q (Sly-based)
 
-2. **Template-Based Configuration**
-   - Define tools/resources as data
-   - Load from JSON at runtime
+1. **sb-introspect Integration**
+   ```lisp
+   (sb-introspect:function-lambda-list fn)
+   (sb-introspect:who-calls sym)
+   (sb-introspect:find-definition-source sym)
+   ```
+
+2. **Tool Safety Levels**
+   - `:safe` - Read-only introspection
+   - `:moderate` - State-changing evaluation
+   - `:dangerous` - Potentially destructive operations
+
+### Not Adopting
+
+| Pattern | Reason |
+|---------|--------|
+| File system tools | Claude has native file access |
+| Project-scoped security | Not needed - MCP provides image access, not file access |
+| MCP Resources | Redundant with Claude's file reading |
+| HTTP transport | STDIO sufficient for Claude Code integration |

@@ -32,10 +32,20 @@ Comparative study of Common Lisp MCP server implementations to inform the future
 3. **Clean architecture** - Well-separated layers
 4. **Modern protocol** - MCP 2025-06-18
 
-### Critical Gaps
-1. **No security model** - Need project-scoped file access
-2. **No file tools** - Can't read/write project files
-3. **No search tools** - Can't search codebase
+### Clarified Scope (Not Gaps)
+
+Claude has native file tools (Read, Write, Edit, Grep, Glob). The MCP server provides **live image access**, not file access:
+
+| Claude Has | MCP Server Provides |
+|------------|-------------------|
+| File read/write | Code evaluation |
+| Text search | Symbol introspection |
+| Directory listing | ASDF/Quicklisp loading |
+
+### Actual Development Priorities
+1. **Introspection tools** - describe-symbol, who-calls, apropos
+2. **Structured errors** - Rich error data for intelligent debugging
+3. **ASDF/Quicklisp integration** - Load systems, query dependencies
 
 ### Recommended Direction
 **Agent-Optimized REPL Server** - Focus on what makes us unique (live Lisp image) rather than full MCP compliance.

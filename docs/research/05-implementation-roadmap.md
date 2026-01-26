@@ -231,9 +231,9 @@ Current error handling returns strings. Enhance to return structured data:
 
 ---
 
-### Phase E: Project Integration (2-3 weeks)
+### Phase E: ASDF & Quicklisp Integration (2-3 weeks)
 
-**Goal**: Understand and work with ASDF projects.
+**Goal**: Load and understand project structure. Claude reads source files directly; MCP loads them into the image.
 
 #### E.1 System Information
 
@@ -245,18 +245,51 @@ Current error handling returns strings. Enhance to return structured data:
   (:result (:name "..."
             :version "..."
             :description "..."
-            :components (...)
-            :dependencies (...))))
+            :author "..."
+            :license "..."
+            :pathname "/path/to/system.asd"
+            :components ((:name "foo" :type :file :pathname "src/foo.lisp") ...)
+            :dependencies ("alexandria" "cl-ppcre" ...))))
 ```
 
-#### E.2 Load System
+#### E.2 Enhanced Load System
 
 Already have `load-system`. Enhance with:
 - Dependency resolution feedback
 - Compilation warnings capture
 - Load time tracking
+- New definitions tracking (what got defined)
 
-#### E.3 System Dependencies
+```lisp
+;; Enhanced load-system result
+(:loaded t
+ :system "my-system"
+ :load-time-ms 1250
+ :dependencies-loaded ("alexandria" "cl-ppcre")
+ :warnings ((:file "src/foo.lisp" :message "...") ...)
+ :new-definitions (:functions (foo bar) :classes (my-class) :packages (my-pkg)))
+```
+
+#### E.3 Quicklisp Integration
+
+```lisp
+;; quickload
+(deftool quickload
+  "Load system via Quicklisp (downloads if needed)"
+  (:param system :string :required t)
+  (:result (:loaded t
+            :system "..."
+            :downloaded nil  ; or list of newly downloaded systems
+            :dependencies-loaded (...))))
+
+;; quicklisp-search
+(deftool quicklisp-search
+  "Search Quicklisp for available systems"
+  (:param term :string :required t)
+  (:result ((:name "system-name" :description "..." :version "...") ...)))
+```
+
+#### E.4 System Dependencies
 
 ```lisp
 ;; system-dependencies
@@ -265,6 +298,35 @@ Already have `load-system`. Enhance with:
   (:param system :string :required t)
   (:param transitive :boolean :doc "Include transitive deps")
   (:result ((:system "name" :depends-on (...)) ...)))
+```
+
+#### E.5 Local System Discovery
+
+```lisp
+;; list-local-systems
+(deftool list-local-systems
+  "List ASDF systems findable from current directory"
+  (:result ((:name "system" :pathname "/path/to/system.asd") ...)))
+
+;; find-system-file
+(deftool find-system-file
+  "Find the .asd file for a system"
+  (:param system :string :required t)
+  (:result (:found t :pathname "/path/to/system.asd")))
+```
+
+#### E.6 Load File
+
+```lisp
+;; load-file
+(deftool load-file
+  "Load a single Lisp file into the image"
+  (:param path :string :required t :doc "Path to .lisp file")
+  (:param compile :boolean :doc "Compile before loading (default: t)")
+  (:result (:loaded t
+            :pathname "/path/to/file.lisp"
+            :warnings (...)
+            :new-definitions (...))))
 ```
 
 ---
@@ -394,13 +456,33 @@ cl-mcp-server/
 
 ---
 
+## Division of Labor: Claude vs. MCP Server
+
+| Capability | Handled By | Rationale |
+|------------|-----------|-----------|
+| Read source files | **Claude** (Read tool) | Native capability |
+| Write source files | **Claude** (Write/Edit) | Native capability |
+| Search files | **Claude** (Grep/Glob) | Native capability |
+| Run shell commands | **Claude** (Bash) | Native capability |
+| **Evaluate code** | **MCP Server** | Requires live image |
+| **Introspect symbols** | **MCP Server** | Requires live image |
+| **Load systems** | **MCP Server** | Requires live image |
+| **Query callers/refs** | **MCP Server** | Requires live image |
+| **Inspect errors** | **MCP Server** | Requires live image |
+| **CLOS inspection** | **MCP Server** | Requires live image |
+
+**Key insight**: The MCP server is a "truth oracle" for the running Lisp image. It does not duplicate Claude's native file system capabilities.
+
+---
+
 ## Non-Goals (Explicit)
 
 1. **Full MCP compliance** - Resources and prompts not needed
 2. **HTTP transport** - STDIO is sufficient for local use
 3. **Multi-implementation support** - SBCL-only is fine
-4. **File system tools** - Claude already has file access
+4. **File system tools** - Claude already has file access (Read, Write, Edit, Grep, Glob)
 5. **Sandboxing** - Trust model is explicit; Claude is trusted
+6. **File content via MCP Resources** - Claude reads files directly
 
 ---
 
@@ -408,12 +490,12 @@ cl-mcp-server/
 
 | Phase | Duration | Deliverables |
 |-------|----------|--------------|
-| A: Core Introspection | 2-3 weeks | describe, apropos, who-calls, macroexpand |
-| B: Enhanced Evaluation | 2-3 weeks | compile-form, time-execution, enhanced eval |
-| C: Error Intelligence | 2 weeks | structured errors, backtrace, restarts |
+| A: Core Introspection | 2-3 weeks | describe-symbol, apropos-search, who-calls, macroexpand-form |
+| B: Enhanced Evaluation | 2-3 weeks | compile-form, time-execution, package-aware eval |
+| C: Error Intelligence | 2 weeks | structured errors, get-backtrace, restarts |
 | D: CLOS Intelligence | 1-2 weeks | class-info, find-methods |
-| E: Project Integration | 2-3 weeks | describe-system, dependencies |
-| **Total** | **9-13 weeks** | **15+ tools, Claude-optimized** |
+| E: ASDF & Quicklisp | 2-3 weeks | quickload, describe-system, system-dependencies, load-file |
+| **Total** | **9-13 weeks** | **18+ tools, Claude-optimized** |
 
 ---
 
