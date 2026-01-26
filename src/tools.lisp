@@ -55,6 +55,19 @@ Returns a list of alists with name, description, and inputSchema."
 (defun define-builtin-tools ()
   "Define the built-in MCP tools."
 
+  ;; ========================================================================
+  ;; Usage Guide - Call first to understand best practices
+  ;; ========================================================================
+
+  (register-tool
+   "get-usage-guide"
+   "Get the recommended workflow guide for using this Lisp MCP server effectively. RECOMMENDED: Call this when starting a new session to learn best practices for incremental development, syntax validation, and effective tool usage."
+   '(("type" . "object")
+     ("properties" . ()))
+   (lambda (args session)
+     (declare (ignore args session))
+     (get-usage-guide-content)))
+
   ;; evaluate-lisp: Evaluate Common Lisp code with enhanced feedback
   (register-tool
    "evaluate-lisp"
@@ -333,6 +346,113 @@ Returns a list of alists with name, description, and inputSchema."
             (pkg-name (cdr (assoc "package" args :test #'string=)))
             (result (evaluate-code code :package pkg-name :capture-time t)))
        (format-timing-result result)))))
+
+;;; ==========================================================================
+;;; Usage Guide Content
+;;; ==========================================================================
+
+(defun get-usage-guide-content ()
+  "Return the usage guide for effective MCP server usage."
+  "# CL-MCP-Server Usage Guide
+
+## Quick Start
+
+This server provides a persistent Common Lisp REPL accessible via MCP tools.
+Definitions persist across calls within a session.
+
+## Available Tools
+
+| Tool | Purpose | When to Use |
+|------|---------|-------------|
+| evaluate-lisp | Execute code, persist definitions | Main development tool |
+| validate-syntax | Check paren balance, syntax | BEFORE saving files |
+| compile-form | Type check without execution | Pre-commit verification |
+| describe-symbol | Inspect symbols | Understanding APIs |
+| apropos-search | Find symbols by pattern | Discovering functions |
+| macroexpand-form | Expand macros | Debug macro usage |
+| time-execution | Profile with timing | Performance analysis |
+| list-definitions | Show session state | Review what's defined |
+| reset-session | Clear all state | Start fresh |
+
+## Recommended Workflow
+
+### 1. Incremental Development
+Build up code piece by piece, testing as you go:
+
+```
+evaluate-lisp: (defun helper (x) (1+ x))     ; Define
+evaluate-lisp: (helper 5)                     ; Test -> 6
+evaluate-lisp: (defun main (lst) (mapcar #'helper lst))
+evaluate-lisp: (main '(1 2 3))                ; Test -> (2 3 4)
+```
+
+### 2. Validate Before Save (CRITICAL)
+ALWAYS validate syntax before writing Lisp files:
+
+```
+1. Prepare new file content
+2. Call validate-syntax with full content
+3. If valid: save file
+4. If invalid: fix errors, repeat step 2
+```
+
+This prevents parenthesis mismatches that are hard to debug.
+
+### 3. Explore Before Implementing
+Use introspection to understand existing code:
+
+```
+apropos-search: pattern=\"hash\"       ; Find hash-related functions
+describe-symbol: name=\"gethash\"      ; Understand the API
+```
+
+### 4. Type Check Before Commit
+Use compile-form for thorough checking:
+
+```
+compile-form catches type errors that evaluate-lisp misses
+```
+
+## Common Patterns
+
+### Define and Test
+```lisp
+evaluate-lisp: (defun factorial (n)
+                 (if (<= n 1) 1 (* n (factorial (1- n)))))
+evaluate-lisp: (mapcar #'factorial '(1 2 3 4 5))
+```
+
+### Capture Timing
+```lisp
+evaluate-lisp with capture-time=true for timing info
+```
+
+### Package Context
+```lisp
+evaluate-lisp with package=\"MY-PACKAGE\" for specific package context
+```
+
+## Anti-Patterns to Avoid
+
+1. **Don't save without validation** - Always call validate-syntax first
+2. **Don't write large untested code** - Build incrementally
+3. **Don't guess APIs** - Use apropos-search and describe-symbol
+4. **Don't ignore compile warnings** - Use compile-form
+
+## Error Recovery
+
+- Syntax errors: Use validate-syntax to find the issue
+- Runtime errors: Server catches all errors, won't crash
+- Lost state: Use list-definitions to see what's defined
+- Fresh start: Use reset-session
+
+## Session Persistence
+
+- Functions, variables, macros persist across calls
+- Loaded systems (via load-system) persist
+- Package context can be set per-call
+
+Call list-definitions to see current session state.")
 
 ;;; ==========================================================================
 ;;; Tool Argument Validation

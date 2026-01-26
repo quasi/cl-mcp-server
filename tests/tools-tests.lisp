@@ -367,3 +367,35 @@
                      session)))
         (is (stringp result))
         (is (search "600" result))))))
+
+;;; ==========================================================================
+;;; Usage Guide Tool Tests
+;;; ==========================================================================
+
+(test get-usage-guide-tool-exists
+  "Test that get-usage-guide tool is registered"
+  (is (not (null (cl-mcp-server.tools:get-tool "get-usage-guide")))))
+
+(test get-usage-guide-returns-markdown
+  "Test get-usage-guide returns markdown documentation"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "get-usage-guide"
+                     nil
+                     session)))
+        (is (stringp result))
+        ;; Should have header
+        (is (search "# CL-MCP-Server Usage Guide" result))
+        ;; Should mention key tools
+        (is (search "evaluate-lisp" result))
+        (is (search "validate-syntax" result))
+        ;; Should mention workflow
+        (is (search "Validate Before Save" result))))))
+
+(test get-usage-guide-no-args-required
+  "Test get-usage-guide works without arguments"
+  (let* ((tool (cl-mcp-server.tools:get-tool "get-usage-guide"))
+         (schema (cl-mcp-server.tools:tool-input-schema tool)))
+    ;; Should have no required args
+    (is (null (cdr (assoc "required" schema :test #'string=))))))
