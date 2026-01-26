@@ -26,6 +26,118 @@
 
 ## Implementation Phases
 
+### Phase 0: Robustness & Safety (PRIORITY)
+
+**Goal**: Prevent server hangs from becoming unrecoverable. Based on real-world crash analysis from todo-api development.
+
+**Problem Statement**: When code hangs (infinite recursion, infinite loops, long-running operations), the MCP server becomes completely unresponsive with:
+- No error message returned
+- No way to interrupt
+- Have to kill and restart the server
+- Loss of all REPL state (loaded systems, defined functions)
+
+#### 0.1 Evaluation Timeout (Critical)
+
+```lisp
+(defparameter *evaluation-timeout* 30) ; seconds, configurable
+
+;; Wrap all evaluations with timeout
+(defun evaluate-with-timeout (form)
+  (handler-case
+    (bt:with-timeout (*evaluation-timeout*)
+      (eval form))
+    (bt:timeout ()
+      (make-error-result
+        :type "EVALUATION-TIMEOUT"
+        :message (format nil "Evaluation exceeded ~A seconds" *evaluation-timeout*)
+        :hint "Consider breaking into smaller operations or increasing timeout"))))
+```
+
+#### 0.2 Interrupt Capability
+
+```lisp
+;; New MCP tool: interrupt-evaluation
+(deftool interrupt-evaluation
+  "Interrupt a long-running evaluation"
+  (:result (:interrupted t :message "Evaluation interrupted")))
+
+;; Implementation requires threading:
+;; - Evaluations run in separate thread
+;; - Main thread can signal interrupt
+;; - bt:interrupt-thread or similar mechanism
+```
+
+#### 0.3 Heartbeat During Long Operations
+
+```lisp
+;; For operations expected to be long, send periodic heartbeats
+;; MCP protocol allows notifications - use them
+
+(defun evaluate-with-heartbeat (form)
+  (let ((eval-thread (bt:make-thread
+                       (lambda () (eval form)))))
+    (loop while (bt:thread-alive-p eval-thread)
+          do (send-heartbeat-notification)
+             (sleep 5))
+    (bt:join-thread eval-thread)))
+```
+
+#### 0.4 Stack Trace on Timeout
+
+```lisp
+;; When timeout occurs, capture what was happening
+(handler-case
+  (bt:with-timeout (*evaluation-timeout*)
+    (eval form))
+  (bt:timeout ()
+    (let ((stack (capture-current-stack eval-thread)))
+      (make-error-result
+        :type "EVALUATION-TIMEOUT"
+        :message "Evaluation timed out"
+        :backtrace stack  ; What was the code doing?
+        :hint "Possible infinite loop or expensive operation"))))
+```
+
+#### 0.5 Configurable Limits
+
+```lisp
+;; Expose configuration via MCP tool
+(deftool configure-limits
+  "Configure evaluation safety limits"
+  (:param timeout :integer :doc "Evaluation timeout in seconds (default: 30)")
+  (:param max-output :integer :doc "Max output characters (default: 100000)")
+  (:result (:timeout 30 :max-output 100000)))
+```
+
+#### 0.6 Graceful Degradation
+
+When things go wrong, preserve what we can:
+
+```lisp
+;; On unrecoverable error, dump session state
+(defun emergency-session-dump ()
+  "Called before crash - save what we can"
+  (with-open-file (out "/tmp/cl-mcp-session-dump.lisp" :direction :output)
+    (format out ";; Emergency session dump at ~A~%" (get-universal-time))
+    (format out ";; Package: ~A~%" (package-name *package*))
+    (dump-session-definitions out)))
+```
+
+#### Implementation Priority
+
+| Feature | Complexity | Impact | Priority |
+|---------|-----------|--------|----------|
+| Evaluation timeout | Low | Critical | P0 |
+| Stack trace on timeout | Medium | High | P0 |
+| Configurable limits | Low | Medium | P1 |
+| Interrupt capability | High | High | P1 |
+| Heartbeat notifications | Medium | Medium | P2 |
+| Session dump on crash | Medium | Medium | P2 |
+
+**Dependencies**: Requires `bordeaux-threads` (already common in CL ecosystem).
+
+---
+
 ### Phase A: Core Introspection (2-3 weeks)
 
 **Goal**: Let Claude "see" the running image as clearly as a human with Sly.
@@ -490,22 +602,30 @@ cl-mcp-server/
 
 | Phase | Duration | Deliverables |
 |-------|----------|--------------|
+| **0: Robustness** | **1 week** | **timeout, interrupt, stack trace on hang** |
 | A: Core Introspection | 2-3 weeks | describe-symbol, apropos-search, who-calls, macroexpand-form |
 | B: Enhanced Evaluation | 2-3 weeks | compile-form, time-execution, package-aware eval |
 | C: Error Intelligence | 2 weeks | structured errors, get-backtrace, restarts |
 | D: CLOS Intelligence | 1-2 weeks | class-info, find-methods |
 | E: ASDF & Quicklisp | 2-3 weeks | quickload, describe-system, system-dependencies, load-file |
-| **Total** | **9-13 weeks** | **18+ tools, Claude-optimized** |
+| **Total** | **10-14 weeks** | **20+ tools, Claude-optimized** |
 
 ---
 
 ## Immediate Next Steps
 
-1. **Create `deftool` macro** - Reduce boilerplate for new tools
-2. **Implement `describe-symbol`** - Foundation tool
-3. **Implement `apropos-search`** - Discovery tool
-4. **Enhance error reporting** - Structured errors first
-5. **Add `who-calls`** - Most requested introspection feature
+### Phase 0 (Safety - Do First)
+
+1. **Add evaluation timeout** - Wrap all evals with `bt:with-timeout`, default 30s
+2. **Capture stack on timeout** - When timeout fires, grab the stack trace
+3. **Add `configure-limits` tool** - Let Claude adjust timeout if needed
+
+### Phase A (Introspection - After Safety)
+
+4. **Create `deftool` macro** - Reduce boilerplate for new tools
+5. **Implement `describe-symbol`** - Foundation introspection tool
+6. **Implement `apropos-search`** - Discovery tool
+7. **Add `who-calls`** - Cross-reference tool
 
 ---
 
@@ -513,5 +633,7 @@ cl-mcp-server/
 
 - [04-sly-lessons-for-mcp.md](04-sly-lessons-for-mcp.md) - Sly architecture analysis
 - [03-recommendations.md](03-recommendations.md) - Competitor analysis recommendations
+- [todo-api post-mortem](https://github.com/quasi/test-quick-api-project/blob/main/docs/software-development-practices.md) - Real-world crash analysis (Phase 0 source)
 - Agent-Q introspection: `/Users/quasi/quasilabs/projects/agent-q/src/tools/introspection.lisp`
 - SBCL Manual Chapter 13: Introspection
+- bordeaux-threads: Threading library for timeout/interrupt implementation

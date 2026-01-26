@@ -12,6 +12,7 @@ Comparative study of Common Lisp MCP server implementations to inform the future
 | [03-recommendations.md](03-recommendations.md) | Recommended direction with cost-benefit analysis |
 | [04-sly-lessons-for-mcp.md](04-sly-lessons-for-mcp.md) | Lessons from Sly/SLYNK for cl-mcp-server |
 | [05-implementation-roadmap.md](05-implementation-roadmap.md) | Concrete implementation plan with phases |
+| [External: todo-api post-mortem](https://github.com/quasi/test-quick-api-project/blob/main/docs/software-development-practices.md) | Real-world crash analysis informing robustness priorities |
 
 ## Implementations Studied
 
@@ -43,9 +44,21 @@ Claude has native file tools (Read, Write, Edit, Grep, Glob). The MCP server pro
 | Directory listing | ASDF/Quicklisp loading |
 
 ### Actual Development Priorities
-1. **Introspection tools** - describe-symbol, who-calls, apropos
-2. **Structured errors** - Rich error data for intelligent debugging
-3. **ASDF/Quicklisp integration** - Load systems, query dependencies
+
+| Priority | Category | Why |
+|----------|----------|-----|
+| **P0** | **Robustness** | Server hangs are unrecoverable - evaluation timeout, interrupt, stack capture |
+| P1 | Introspection | describe-symbol, who-calls, apropos - query the live image |
+| P1 | Structured errors | Rich error data for intelligent debugging |
+| P2 | ASDF/Quicklisp | Load systems, query dependencies |
+
+### Robustness Findings (New)
+
+Real-world usage revealed critical reliability issues. See [todo-api post-mortem](https://github.com/quasi/test-quick-api-project/blob/main/docs/software-development-practices.md):
+
+- **Problem**: Infinite recursion/loops cause server to hang with no recovery
+- **Impact**: Must kill server, losing all REPL state
+- **Solution**: Evaluation timeout (30s default), interrupt capability, stack trace on hang
 
 ### Recommended Direction
 **Agent-Optimized REPL Server** - Focus on what makes us unique (live Lisp image) rather than full MCP compliance.
