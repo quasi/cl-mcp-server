@@ -277,6 +277,56 @@ Accessors, readers, and writers are functions. Check if they exist:
 `class-direct-subclasses` only shows classes already loaded in the image.
 Unloaded subclasses won't appear.
 
+## Error Response
+
+When class-info fails:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{error message}"
+    }
+  ],
+  "isError": false
+}
+```
+
+Note: Lookup failures return descriptive messages but `isError: false` since they are informational responses.
+
+### Possible Errors
+
+| Condition | When | Response |
+|-----------|------|----------|
+| Package not found | Invalid package name | "Package X not found" |
+| Symbol not found | Symbol doesn't exist | "Symbol X not found in package Y" |
+| Not a class | Symbol is not a class | "X is not a class" |
+
+### Class Not Found
+
+Input:
+```json
+{"class": "nonexistent-class"}
+```
+
+Response:
+```
+Class NONEXISTENT-CLASS not found in package CL-USER
+```
+
+### Symbol Exists But Not a Class
+
+Input:
+```json
+{"class": "mapcar", "package": "CL"}
+```
+
+Response:
+```
+MAPCAR is not a class (it is a FUNCTION)
+```
+
 ## Verification Strategy
 
 Tests should verify:

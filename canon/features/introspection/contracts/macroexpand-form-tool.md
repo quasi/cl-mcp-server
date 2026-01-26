@@ -185,6 +185,58 @@ Output:
 Error reading form: end of file on #<STRING-INPUT-STREAM>
 ```
 
+## Error Response
+
+When macroexpand fails:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ERROR] {CONDITION-TYPE}\n{error message}"
+    }
+  ],
+  "isError": true
+}
+```
+
+### Possible Errors
+
+| Condition | When | Response |
+|-----------|------|----------|
+| `reader-error` | Malformed Lisp form | "Error reading form: {details}" |
+| `end-of-file` | Incomplete form (unbalanced parens) | "Error reading form: end of file" |
+| `package-error` | Unknown package prefix | "Package X not found" |
+| `simple-error` | Macro signals error during expansion | Error from macro |
+
+### Read Error Example
+
+Input:
+```json
+{"form": "(defun"}
+```
+
+Response:
+```
+Error reading form: end of file on #<STRING-INPUT-STREAM>
+```
+
+### Macro Expansion Error
+
+Some macros may signal errors during expansion (e.g., malformed syntax):
+
+Input:
+```json
+{"form": "(loop for)"}
+```
+
+Response:
+```
+[ERROR] SB-INT:SIMPLE-PROGRAM-ERROR
+LOOP requires a form after FOR.
+```
+
 ## Implementation Notes
 
 - Uses `macroexpand-1` for single-step, `macroexpand` for full

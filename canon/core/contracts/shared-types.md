@@ -196,3 +196,52 @@ Common data structures used across CL-MCP-Server features.
   }
 }
 ```
+
+---
+
+## Error Response Format
+
+All tools that can fail use this standard error response format within MCP:
+
+### Tool Error Response
+
+```json-schema
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#/definitions/ToolErrorResponse",
+  "type": "object",
+  "required": ["content", "isError"],
+  "properties": {
+    "content": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "text"],
+        "properties": {
+          "type": {"const": "text"},
+          "text": {
+            "type": "string",
+            "description": "Error message, typically formatted as '[ERROR] TYPE\\nmessage'"
+          }
+        }
+      }
+    },
+    "isError": {
+      "type": "boolean",
+      "const": true
+    }
+  }
+}
+```
+
+### Common Condition Types
+
+| Condition | Description |
+|-----------|-------------|
+| `simple-error` | General error |
+| `type-error` | Type mismatch |
+| `package-error` | Package not found |
+| `reader-error` | Malformed Lisp syntax |
+| `end-of-file` | Incomplete form |
+| `sb-ext:timeout` | Operation timed out |
+| `storage-condition` | Out of memory |

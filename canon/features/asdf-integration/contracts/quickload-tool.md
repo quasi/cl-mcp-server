@@ -278,6 +278,48 @@ Quicklisp provides:
 ;; Returns system object with version info
 ```
 
+## Error Response
+
+When quickload fails:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ERROR] {CONDITION-TYPE}\n{error message}"
+    }
+  ],
+  "isError": true
+}
+```
+
+### Possible Errors
+
+| Condition | When | Response |
+|-----------|------|----------|
+| `ql:system-not-found` | System not in Quicklisp | "System X not found in Quicklisp" |
+| `asdf:missing-dependency` | Dependency unavailable | Lists missing dependency |
+| `sb-ext:timeout` | Download/compile timeout | Timeout message |
+| `usocket:socket-error` | Network failure | Connection error details |
+| `simple-error` | Compilation error | Compilation failure message |
+
+### Quicklisp Not Available
+
+If Quicklisp is not loaded:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Error: Quicklisp is not installed or not loaded.\n\nTo install Quicklisp:\n  1. Download: https://beta.quicklisp.org/quicklisp.lisp\n  2. Load: (load \"quicklisp.lisp\")\n  3. Install: (quicklisp-quickstart:install)"
+    }
+  ],
+  "isError": true
+}
+```
+
 ## Safety Considerations
 
 ### Network Access

@@ -157,6 +157,43 @@ Found 0 symbols matching 'xyznonexistent':
 
 ```
 
+## Error Response
+
+When apropos-search fails:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{error message}"
+    }
+  ],
+  "isError": false
+}
+```
+
+Note: Search failures return descriptive messages but `isError: false` since returning no results is a valid outcome.
+
+### Possible Errors
+
+| Condition | When | Response |
+|-----------|------|----------|
+| Package not found | Invalid package name | "Package X not found" |
+| Invalid type | Unknown type filter | "Invalid type: X. Valid types: function, macro, variable, class, generic-function" |
+
+### Package Not Found
+
+Input:
+```json
+{"pattern": "foo", "package": "NONEXISTENT"}
+```
+
+Response:
+```
+Package NONEXISTENT not found
+```
+
 ## Implementation Notes
 
 - When no package specified, uses `do-external-symbols` on all packages

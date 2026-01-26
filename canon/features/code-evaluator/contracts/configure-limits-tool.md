@@ -98,6 +98,42 @@ For trusted code that needs unlimited time:
 **Warning**: Disabling timeout means infinite loops will hang the server.
 Only disable when you trust the code being evaluated.
 
+## Error Response
+
+This tool has minimal error conditions since it accepts optional parameters.
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ERROR] TYPE-ERROR\n{error message}"
+    }
+  ],
+  "isError": true
+}
+```
+
+### Possible Errors
+
+| Condition | When | Response |
+|-----------|------|----------|
+| `type-error` | Non-integer value for timeout/max-output | Type error message |
+| `simple-error` | Negative value (if validated) | "Value must be non-negative" |
+
+### Invalid Input Example
+
+Input:
+```json
+{"timeout": "invalid"}
+```
+
+Response:
+```
+[ERROR] TYPE-ERROR
+The value "invalid" is not of type INTEGER.
+```
+
 ## Scope
 
 Changes apply globally to the server session. They persist until:

@@ -212,3 +212,51 @@ Use SBCL's package iteration:
   (setf *package* (find-package :cl-user))
   :reset-complete)
 ```
+
+## Error Response
+
+### list-definitions Errors
+
+This tool has no expected error conditions. It always returns the current definitions.
+
+### reset-session Errors
+
+This tool has no expected error conditions. It always completes successfully.
+
+### load-system Errors
+
+When loading fails:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ERROR] {CONDITION-TYPE}\n{error message}"
+    }
+  ],
+  "isError": true
+}
+```
+
+### Possible Errors
+
+| Condition | When | Response |
+|-----------|------|----------|
+| `ql:system-not-found` | System not in Quicklisp | "System X not found" |
+| `asdf:missing-component` | System file not found | "Component X not found" |
+| `asdf:compile-error` | Compilation failed | Compilation error details |
+| `package-error` | Package conflict | Package error message |
+
+### System Not Found
+
+Input:
+```json
+{"name": "load-system", "arguments": {"system": "nonexistent"}}
+```
+
+Response:
+```
+[ERROR] QUICKLISP-CLIENT:SYSTEM-NOT-FOUND
+System "nonexistent" not found in any known distribution.
+```

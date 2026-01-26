@@ -361,6 +361,73 @@ Result: 6
 - Time mode: ~5-10% overhead
 - Alloc mode: ~10-20% overhead
 
+## Error Response
+
+When profiling fails:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ERROR] {CONDITION-TYPE}\n{error message}\n\n[Backtrace]\n{formatted backtrace}"
+    }
+  ],
+  "isError": true
+}
+```
+
+### Possible Errors
+
+| Condition | When | Response |
+|-----------|------|----------|
+| `reader-error` | Malformed code string | "Error reading code" |
+| `package-error` | Invalid package name | "Package X not found" |
+| Any runtime error | Error during profiled execution | Error with backtrace |
+| `sb-ext:timeout` | Code exceeds timeout | Timeout message |
+| `storage-condition` | Out of memory | Memory error |
+
+### Error During Profiled Code
+
+If the profiled code signals an error, profiling stops and the error is reported:
+
+Input:
+```json
+{
+  "code": "(error \"intentional error\")",
+  "mode": "cpu"
+}
+```
+
+Response:
+```
+[ERROR] SIMPLE-ERROR
+intentional error
+
+[Backtrace]
+0: (ERROR "intentional error")
+1: (EVAL (ERROR "intentional error"))
+...
+
+(Profiling stopped due to error)
+```
+
+### Invalid Mode
+
+Input:
+```json
+{
+  "code": "(+ 1 2)",
+  "mode": "invalid"
+}
+```
+
+Response:
+```
+[ERROR] SIMPLE-ERROR
+Invalid profiling mode: "invalid". Valid modes: cpu, time, alloc
+```
+
 ## Verification Strategy
 
 Tests should verify:

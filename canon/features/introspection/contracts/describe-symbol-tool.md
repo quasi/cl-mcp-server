@@ -140,6 +140,55 @@ Output:
 Symbol NONEXISTENT-SYMBOL not found in package CL-USER (status: NIL)
 ```
 
+## Error Response
+
+When describe-symbol fails:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{error message}"
+    }
+  ],
+  "isError": false
+}
+```
+
+Note: Symbol lookup failures return descriptive messages but `isError: false` since they are informational responses rather than execution errors.
+
+### Possible Errors
+
+| Condition | When | Response |
+|-----------|------|----------|
+| Package not found | Invalid package name | "Package X not found" |
+| Symbol not found | Symbol doesn't exist | "Symbol X not found in package Y (status: NIL)" |
+
+### Package Not Found
+
+Input:
+```json
+{"name": "foo", "package": "NONEXISTENT"}
+```
+
+Response:
+```
+Package NONEXISTENT not found
+```
+
+### Symbol Not Found
+
+Input:
+```json
+{"name": "nonexistent-symbol"}
+```
+
+Response:
+```
+Symbol NONEXISTENT-SYMBOL not found in package CL-USER (status: NIL)
+```
+
 ## Implementation Notes
 
 - Uses `sb-introspect` for SBCL-specific information

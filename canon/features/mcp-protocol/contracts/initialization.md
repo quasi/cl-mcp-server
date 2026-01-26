@@ -137,6 +137,49 @@ The CL-MCP-Server declares:
 | `tools` | `{}` | Server provides tools |
 | `tools.listChanged` | `false` | Tool list is static |
 
+## Error Response
+
+If initialization fails:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32600,
+    "message": "Invalid Request",
+    "data": "Missing required field: protocolVersion"
+  }
+}
+```
+
+### Possible Errors
+
+| Code | Message | When |
+|------|---------|------|
+| -32600 | Invalid Request | Missing required fields |
+| -32602 | Invalid params | Malformed capabilities or clientInfo |
+| -32000 | Protocol version mismatch | Incompatible protocol version |
+
+### Protocol Version Mismatch
+
+If client requests an unsupported protocol version:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32000,
+    "message": "Unsupported protocol version",
+    "data": {
+      "requested": "2024-01-01",
+      "supported": ["2025-03-26"]
+    }
+  }
+}
+```
+
 ## Invariants
 
 1. Server MUST NOT process any requests before `initialize` completes

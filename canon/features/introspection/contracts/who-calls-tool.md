@@ -118,6 +118,43 @@ Output:
 Symbol NONEXISTENT not found in package CL-USER (status: NIL)
 ```
 
+## Error Response
+
+When who-calls fails:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{error message}"
+    }
+  ],
+  "isError": false
+}
+```
+
+Note: Lookup failures return descriptive messages but `isError: false` since they are informational responses.
+
+### Possible Errors
+
+| Condition | When | Response |
+|-----------|------|----------|
+| Package not found | Invalid package name | "Package X not found" |
+| Symbol not found | Symbol doesn't exist | "Symbol X not found in package Y (status: NIL)" |
+
+### Package Not Found
+
+Input:
+```json
+{"name": "my-function", "package": "NONEXISTENT"}
+```
+
+Response:
+```
+Package NONEXISTENT not found
+```
+
 ## Implementation Notes
 
 - Uses `sb-introspect:who-calls` for caller discovery

@@ -66,3 +66,23 @@ This tool is informational only. It does not:
 - Require any arguments
 
 It complements other tools by explaining when and how to use them effectively.
+
+## Error Response
+
+This tool has no expected error conditions under normal operation. It always returns the usage guide content.
+
+If an unexpected error occurs:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ERROR] SIMPLE-ERROR\nFailed to generate usage guide: {details}"
+    }
+  ],
+  "isError": true
+}
+```
+
+This should only happen due to internal server issues.
