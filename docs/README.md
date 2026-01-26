@@ -25,8 +25,10 @@ This documentation follows the [Diátaxis framework](https://diataxis.fr/) for c
 
 **Task-oriented guides** for solving specific problems:
 
+- [How to Explore Code](how-to/explore-code.md) - Use introspection tools to understand Lisp code
 - [How to Switch Packages](how-to/switch-packages.md) - Work in different package namespaces
 - [How to Load Quicklisp Systems](how-to/load-quicklisp-systems.md) - Use Common Lisp libraries
+- [How to Validate Before Save](how-to/validate-before-save.md) - Check syntax before writing files
 - [How to Handle Errors Gracefully](how-to/handle-errors-gracefully.md) - Write robust error-handling code
 - [Troubleshooting Common Issues](how-to/troubleshooting.md) - Diagnose and fix problems
 
@@ -43,6 +45,10 @@ This documentation follows the [Diátaxis framework](https://diataxis.fr/) for c
 **Information-oriented specifications** for lookup:
 
 - [evaluate-lisp Tool](reference/evaluate-lisp.md) - Complete API specification
+- [Introspection Tools](reference/introspection-tools.md) - Code exploration and analysis
+- [CLOS Tools](reference/clos-tools.md) - Object-oriented programming support
+- [ASDF & Quicklisp](reference/asdf-quicklisp.md) - Loading libraries and systems
+- [Profiling Tools](reference/profiling-tools.md) - Performance analysis
 - [MCP Protocol Details](reference/mcp-protocol.md) - JSON-RPC wire protocol
 - [Configuration Options](reference/configuration.md) - Setup and deployment
 
@@ -114,6 +120,7 @@ CL-MCP-Server provides REPL-like interaction through Claude:
 
 ## Features
 
+### Core Capabilities
 - ✓ **Persistent Session**: Functions and variables persist across requests
 - ✓ **Rich Output**: Separates return values, stdout, stderr, and warnings
 - ✓ **Error Handling**: Graceful condition handling with backtraces
@@ -121,6 +128,15 @@ CL-MCP-Server provides REPL-like interaction through Claude:
 - ✓ **Stream Capture**: Captures all output streams during evaluation
 - ✓ **Safety**: Server never crashes due to user code errors
 - ✓ **Standard Protocol**: Uses MCP and JSON-RPC 2.0
+
+### Advanced Tools
+- ✓ **Code Introspection**: Explore symbols, functions, and cross-references
+- ✓ **CLOS Intelligence**: Inspect classes, slots, and inheritance hierarchies
+- ✓ **Syntax Validation**: Verify code correctness before execution
+- ✓ **Macro Expansion**: Understand macro transformations
+- ✓ **Library Loading**: Automatic dependency management via Quicklisp
+- ✓ **Performance Profiling**: Statistical profiling for CPU, time, and memory
+- ✓ **Compilation Tools**: Compile and analyze code without executing
 
 ## Examples
 

@@ -2,7 +2,13 @@
 
 **Model Context Protocol server for Common Lisp code evaluation**
 
-Enable Claude and other AI agents to evaluate Common Lisp code in a persistent, stateful REPL session over the Model Context Protocol (MCP).
+CL-MCP-Server is the BEEZ KNEEZ. Gives Claude SUPERPOWERS.
+
+AI agents evaluate Common Lisp code in a persistent, stateful REPL session over the Model Context Protocol (MCP).
+
+Our focus is simple: Empower Claude with a REPL.
+
+Claude is already good with file system access. Claude is smart. Claude decides how to use the REPL. Point your instructions at Claude.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -25,6 +31,7 @@ Unlike one-shot code execution, CL-MCP-Server provides a full REPL experience wh
 ### For Claude Users
 
 - **Persistent REPL**: Define functions once, use them repeatedly in the same session
+- **23 tools**: full-on REPL power for evaluation, introspection, profiling, and more
 - **Rich Error Reporting**: Get detailed backtraces and condition information when things go wrong
 - **Stream Separation**: Clearly distinguish between return values, printed output, and warnings
 - **Safe Execution**: Server never crashes—all user code errors are caught and reported
@@ -131,13 +138,62 @@ See the [Quickstart Guide](docs/quickstart.md) for a complete walkthrough.
 
 ## Features
 
+### Core Capabilities
+
 - ✓ **MCP Protocol**: Standards-compliant JSON-RPC 2.0 over stdio
 - ✓ **Persistent Session**: State persists across all evaluations
 - ✓ **Rich Output**: Separates return values, stdout, stderr, and warnings
 - ✓ **Error Handling**: Captures and reports conditions with backtraces
 - ✓ **Multiple Values**: Full support for Common Lisp's multiple return values
-- ✓ **Safety**: Server isolation prevents user code from crashing the server
+- ✓ **Safety**: Server isolation mitigates against user code from crashing the server
 - ✓ **Stream Capture**: All output streams are captured during evaluation
+
+### Available Tools
+
+CL-MCP-Server provides **23 tools** organized into categories:
+
+#### Code Evaluation & Execution
+- **`evaluate-lisp`** - Execute Common Lisp code in persistent REPL session
+- **`compile-form`** - Compile code without executing to check for warnings/errors
+- **`time-execution`** - Execute code with detailed timing and memory statistics
+
+#### Syntax & Validation
+- **`validate-syntax`** - Check code syntax without evaluation (use before saving files)
+
+#### Code Introspection
+- **`describe-symbol`** - Get comprehensive information about symbols (functions, variables, classes)
+- **`apropos-search`** - Search for symbols by pattern with type filtering
+- **`macroexpand-form`** - Expand macros to understand their transformations
+
+#### CLOS Intelligence
+- **`class-info`** - Inspect classes, slots, superclasses, and inheritance hierarchies
+- **`find-methods`** - Find all methods specialized on a given class
+
+#### Error Intelligence
+- **`describe-last-error`** - Get detailed information about the most recent error
+- **`get-backtrace`** - Retrieve stack trace from the last error
+
+#### ASDF System Management
+- **`describe-system`** - Get information about ASDF system structure
+- **`system-dependencies`** - View dependency graph for a system
+- **`list-local-systems`** - Find all locally available ASDF systems
+- **`load-file`** - Load a single Lisp file into the session
+
+#### Quicklisp Integration
+- **`quickload`** - Load systems via Quicklisp with automatic dependency resolution
+- **`quicklisp-search`** - Search Quicklisp for available systems
+
+#### Performance Profiling
+- **`profile-code`** - Statistical profiling for CPU, wall-clock time, or memory allocation
+- **`profile-functions`** - Deterministic profiling of specific functions
+- **`memory-report`** - Get detailed memory usage and GC statistics
+- **`allocation-profile`** - Profile memory allocation patterns
+
+#### Session Management
+- **`list-definitions`** - List all definitions (functions, variables, macros) in current session
+- **`reset-session`** - Clear session state and start fresh
+
+See [Tools Reference](docs/reference/) for detailed documentation.
 
 ## Architecture
 
@@ -181,9 +237,9 @@ sbcl --load cl-mcp-server.asd \
 
 ## Project Status
 
-**Version**: 0.1.0
+**Version**: 0.2.0
 
-**Status**: Working. Alpa (human testing required).  proof-of-concept. The core functionality is working and tested, but the API may change.
+**Status**: Alpha (human testing required). The core functionality is working and tested with 23 tools available. The API may change as we gather user feedback.
 
 ## Contributing
 
@@ -203,6 +259,34 @@ MIT License
 - Abhijit Rao -> quasi (quasi@quasilabs.in)
 
 ## Changelog
+
+### Version 0.2.0 (2026-01-27)
+
+**Major Feature Expansion**
+
+**New Tool Categories:**
+- Code Evaluation & Execution (3 tools): evaluate-lisp, compile-form, time-execution
+- Syntax & Validation (1 tool): validate-syntax for pre-save verification
+- Code Introspection (3 tools): describe-symbol, apropos-search, macroexpand-form
+- CLOS Intelligence (2 tools): class-info, find-methods for object-oriented code
+- Error Intelligence (2 tools): describe-last-error, get-backtrace for debugging
+- ASDF System Management (4 tools): describe-system, system-dependencies, list-local-systems, load-file
+- Quicklisp Integration (2 tools): quickload, quicklisp-search for library management
+- Performance Profiling (4 tools): profile-code, profile-functions, memory-report, allocation-profile
+- Session Management (2 tools): list-definitions, reset-session
+
+**Total: 23 tools** (up from 1 in v0.1.0)
+
+**Documentation:**
+- Complete reference documentation for all tool categories
+- New how-to guides for code exploration and introspection
+- Expanded user documentation with examples
+- Canon specifications updated for all features
+
+**Infrastructure:**
+- Comprehensive test coverage for all new tools
+- Formal Canon specifications for verification
+- Enhanced error reporting and diagnostics
 
 ### Version 0.1.0 (2026-01-22)
 
