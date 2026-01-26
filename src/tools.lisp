@@ -444,7 +444,144 @@ Returns a list of alists with name, description, and inputSchema."
                    (error (e)
                      (format nil "Error finding methods: ~A" e)))
                  (format nil "Class ~A not found in package ~A"
-                         class-name (package-name pkg)))))))))
+                         class-name (package-name pkg))))))))
+
+  ;; ========================================================================
+  ;; Phase E: ASDF & Quicklisp Integration Tools
+  ;; ========================================================================
+
+  ;; describe-system: Get ASDF system information
+  (register-tool
+   "describe-system"
+   "Get comprehensive information about an ASDF system including its version, description, author, license, components, and dependencies. Use this to understand a system's structure before loading."
+   '(("type" . "object")
+     ("required" . ("system"))
+     ("properties" . (("system" . (("type" . "string")
+                                   ("description" . "Name of the ASDF system"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((system-name (cdr (assoc "system" args :test #'string=))))
+       (handler-case
+           (format-system-info (introspect-system system-name))
+         (error (e)
+           (format nil "Error: ~A" e))))))
+
+  ;; system-dependencies: Get dependency graph
+  (register-tool
+   "system-dependencies"
+   "Get the dependency graph for an ASDF system. Can show just direct dependencies or include all transitive dependencies."
+   '(("type" . "object")
+     ("required" . ("system"))
+     ("properties" . (("system" . (("type" . "string")
+                                   ("description" . "Name of the ASDF system")))
+                      ("transitive" . (("type" . "boolean")
+                                       ("description" . "Include all transitive dependencies (default: false)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((system-name (cdr (assoc "system" args :test #'string=)))
+           (transitive (cdr (assoc "transitive" args :test #'string=))))
+       (handler-case
+           (format-system-dependencies
+            (introspect-system-dependencies system-name :transitive transitive))
+         (error (e)
+           (format nil "Error: ~A" e))))))
+
+  ;; list-local-systems: Find systems in local projects
+  (register-tool
+   "list-local-systems"
+   "List all ASDF systems available locally (from Quicklisp local-projects and ASDF source registry). Shows system names and their .asd file locations."
+   `(("type" . "object")
+     ("properties" . ,(make-hash-table :test #'equal)))
+   (lambda (args session)
+     (declare (ignore args session))
+     (handler-case
+         (format-local-systems (introspect-local-systems))
+       (error (e)
+         (format nil "Error: ~A" e)))))
+
+  ;; find-system-file: Locate a system's .asd file
+  (register-tool
+   "find-system-file"
+   "Find the .asd file for an ASDF system. Returns the full path to the system definition file."
+   '(("type" . "object")
+     ("required" . ("system"))
+     ("properties" . (("system" . (("type" . "string")
+                                   ("description" . "Name of the ASDF system to locate"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((system-name (cdr (assoc "system" args :test #'string=)))
+            (result (introspect-find-system-file system-name)))
+       (if (getf result :found)
+           (format nil "System: ~A~%Location: ~A"
+                   (getf result :name)
+                   (getf result :pathname))
+           (format nil "System ~A not found" system-name)))))
+
+  ;; quickload: Load via Quicklisp
+  (register-tool
+   "quickload"
+   "Load an ASDF system via Quicklisp. Will automatically download the system and its dependencies if not already installed. Safer than load-system for external dependencies."
+   '(("type" . "object")
+     ("required" . ("system"))
+     ("properties" . (("system" . (("type" . "string")
+                                   ("description" . "Name of the system to load")))
+                      ("verbose" . (("type" . "boolean")
+                                    ("description" . "Show detailed loading output (default: false)"))))))
+   (lambda (args session)
+     (let ((system-name (cdr (assoc "system" args :test #'string=)))
+           (verbose (cdr (assoc "verbose" args :test #'string=))))
+       (handler-case
+           (progn
+             (let ((result (introspect-quickload system-name :verbose verbose)))
+               (when session
+                 (push (getf result :system) (session-loaded-systems session)))
+               (format-quickload-result result)))
+         (error (e)
+           (format nil "Error loading ~A: ~A" system-name e))))))
+
+  ;; quicklisp-search: Search available systems
+  (register-tool
+   "quicklisp-search"
+   "Search Quicklisp for available systems matching a pattern. Returns a list of system names that can be loaded with quickload."
+   '(("type" . "object")
+     ("required" . ("pattern"))
+     ("properties" . (("pattern" . (("type" . "string")
+                                    ("description" . "Search pattern (case-insensitive substring)")))
+                      ("limit" . (("type" . "integer")
+                                  ("description" . "Maximum number of results (default: 30)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((pattern (cdr (assoc "pattern" args :test #'string=)))
+           (limit (or (cdr (assoc "limit" args :test #'string=)) 30)))
+       (handler-case
+           (format-quicklisp-search-results
+            (introspect-quicklisp-search pattern :limit limit)
+            pattern)
+         (error (e)
+           (format nil "Error: ~A" e))))))
+
+  ;; load-file: Load a single Lisp file
+  (register-tool
+   "load-file"
+   "Load a single Lisp file into the running image. Can optionally compile the file first. Use this for loading individual files that aren't part of an ASDF system."
+   '(("type" . "object")
+     ("required" . ("path"))
+     ("properties" . (("path" . (("type" . "string")
+                                 ("description" . "Path to the Lisp file to load")))
+                      ("compile" . (("type" . "boolean")
+                                    ("description" . "Compile the file before loading (default: false)")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package context for loading (default: CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((path (cdr (assoc "path" args :test #'string=)))
+           (compile (cdr (assoc "compile" args :test #'string=)))
+           (package (or (cdr (assoc "package" args :test #'string=)) "CL-USER")))
+       (handler-case
+           (format-load-file-result
+            (introspect-load-file path :compile compile :package package))
+         (error (e)
+           (format nil "Error loading file: ~A" e)))))))
 
 ;;; ==========================================================================
 ;;; Usage Guide Content
@@ -474,6 +611,12 @@ Definitions persist across calls within a session.
 | get-backtrace | Get error stack trace | Diagnosing errors |
 | class-info | Inspect CLOS classes | Understanding class structure |
 | find-methods | Find methods on a class | Discovering class operations |
+| describe-system | Get ASDF system info | Before loading systems |
+| system-dependencies | Get dependency graph | Understanding dependencies |
+| list-local-systems | Find local systems | Discovering available systems |
+| quickload | Load via Quicklisp | Loading external libraries |
+| quicklisp-search | Search Quicklisp | Finding libraries |
+| load-file | Load a Lisp file | Loading individual files |
 | list-definitions | Show session state | Review what's defined |
 | reset-session | Clear all state | Start fresh |
 

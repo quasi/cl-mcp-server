@@ -96,3 +96,20 @@ features:
     tools:
       - class-info (new - get comprehensive class information including slots)
       - find-methods (new - find all methods specialized on a class)
+
+  asdf-integration:
+    phase: stable
+    description: "Phase E - ASDF and Quicklisp integration for system management"
+    vocabulary: stable
+    contracts: stable
+    scenarios: stable
+    properties: not-started
+    verification: not-started
+    tools:
+      - describe-system (new - get comprehensive ASDF system information)
+      - system-dependencies (new - get dependency graph with transitive option)
+      - list-local-systems (new - find locally available systems)
+      - find-system-file (new - locate .asd file for a system)
+      - quickload (new - load via Quicklisp with download support)
+      - quicklisp-search (new - search Quicklisp for available systems)
+      - load-file (new - load individual Lisp files)

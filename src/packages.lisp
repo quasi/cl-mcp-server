@@ -152,11 +152,38 @@
    ;; Helper
    #:resolve-symbol))
 
+(defpackage #:cl-mcp-server.asdf-tools
+  (:use #:cl)
+  (:export
+   ;; E.1: describe-system
+   #:introspect-system
+   #:format-system-info
+   #:collect-components
+   ;; E.3: quickload / quicklisp-search
+   #:quicklisp-available-p
+   #:introspect-quickload
+   #:format-quickload-result
+   #:introspect-quicklisp-search
+   #:format-quicklisp-search-results
+   ;; E.4: system-dependencies
+   #:introspect-system-dependencies
+   #:format-system-dependencies
+   ;; E.5: list-local-systems / find-system-file
+   #:introspect-local-systems
+   #:format-local-systems
+   #:introspect-find-system-file
+   ;; E.6: load-file
+   #:introspect-load-file
+   #:format-load-file-result
+   ;; Helper
+   #:normalize-dependency))
+
 (defpackage #:cl-mcp-server.tools
   (:use #:cl
         #:cl-mcp-server.evaluator
         #:cl-mcp-server.session
-        #:cl-mcp-server.introspection)
+        #:cl-mcp-server.introspection
+        #:cl-mcp-server.asdf-tools)
   (:export
    #:*tools*
    #:tool-definition
