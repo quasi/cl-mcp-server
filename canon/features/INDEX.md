@@ -10,6 +10,7 @@
 | [code-evaluator](#code-evaluator) | draft | P0 | Common Lisp expression evaluation with safety controls |
 | [session-management](#session-management) | draft | P0 | Persistent REPL environment with state tracking |
 | [error-handling](#error-handling) | draft | P0 | Condition capture and structured error reporting |
+| [introspection](#introspection) | draft | P1 | Phase A core introspection tools for SBCL image inspection |
 
 ## Feature Details
 
@@ -132,6 +133,48 @@
 
 ---
 
+### introspection
+
+**Purpose**: Phase A core introspection tools for SBCL image inspection.
+
+**Location**: `introspection/`
+
+**Status**: draft
+
+**Quick Navigation**:
+
+| Need to... | Read |
+|------------|------|
+| Query symbol information | `contracts/describe-symbol-tool.md` |
+| Search for symbols | `contracts/apropos-search-tool.md` |
+| Find function callers | `contracts/who-calls-tool.md` |
+| Find variable references | `contracts/who-references-tool.md` |
+| Expand macro forms | `contracts/macroexpand-form-tool.md` |
+| Test symbol inspection | `scenarios/symbol-inspection.md` |
+| Test symbol discovery | `scenarios/symbol-discovery.md` |
+| Test cross-references | `scenarios/cross-reference.md` |
+| Test macro expansion | `scenarios/macro-understanding.md` |
+
+**Contracts**: 5
+- `describe-symbol-tool.md` - Symbol information
+- `apropos-search-tool.md` - Symbol search
+- `who-calls-tool.md` - Caller discovery
+- `who-references-tool.md` - Reference discovery
+- `macroexpand-form-tool.md` - Macro expansion
+
+**Scenarios**: 4
+- `symbol-inspection.md` - Querying symbols
+- `symbol-discovery.md` - Finding symbols
+- `cross-reference.md` - Code navigation
+- `macro-understanding.md` - Macro transformations
+
+**Dependencies**:
+- `session-management` (for package context)
+
+**Note**: SBCL-specific (uses sb-introspect)
+
+---
+
 ## Dependency Graph
 
 ```dot
@@ -143,12 +186,14 @@ digraph FeatureDependencies {
     evaluator [label="code-evaluator"];
     session [label="session-management"];
     errors [label="error-handling"];
+    introspection [label="introspection\n(Phase A)"];
 
     evaluator -> mcp;
     evaluator -> session;
     evaluator -> errors;
     session -> mcp;
     errors -> mcp;
+    introspection -> session;
 }
 ```
 
@@ -157,14 +202,15 @@ digraph FeatureDependencies {
 2. `session-management` (depends on mcp-protocol)
 3. `error-handling` (depends on mcp-protocol)
 4. `code-evaluator` (depends on all three)
+5. `introspection` (depends on session-management)
 
 ## Feature Statistics
 
 | Metric | Count |
 |--------|-------|
-| Total features | 4 |
-| Total contracts | 7 |
-| Total scenarios | 8 |
+| Total features | 5 |
+| Total contracts | 12 |
+| Total scenarios | 12 |
 | Total properties | 0 (defined in contracts) |
 | Total decisions | 0 (no decision logs yet) |
 
@@ -187,4 +233,4 @@ Terms used across features (see `core/foundation/vocabulary.md`):
 
 ---
 
-**Last Updated**: 2026-01-22
+**Last Updated**: 2026-01-26

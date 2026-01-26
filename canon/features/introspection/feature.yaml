@@ -1,0 +1,39 @@
+feature:
+  name: introspection
+  version: 0.1.0
+  status: draft
+  description: |
+    Phase A: Core Introspection Tools
+
+    Provides deep inspection of the running SBCL image, allowing Claude
+    to "see" the Lisp environment as clearly as a human using Sly/SLIME.
+    Uses sb-introspect for SBCL-specific capabilities including source
+    locations, arglists, and cross-reference databases.
+
+    Key capabilities:
+    - Symbol information (type, documentation, arglist, source location)
+    - Symbol search/discovery with filtering
+    - Cross-reference queries (who-calls, who-references)
+    - Macro expansion for understanding code transformations
+
+depends_on:
+  core: true
+  features:
+    - session-management  # Package context
+
+contracts:
+  - describe-symbol-tool    # Comprehensive symbol information
+  - apropos-search-tool     # Symbol discovery
+  - who-calls-tool          # Cross-reference: callers
+  - who-references-tool     # Cross-reference: variable users
+  - macroexpand-form-tool   # Macro expansion
+
+properties:
+  - sbcl-specific           # Uses sb-introspect, SBCL-only
+  - read-only               # No state modification
+
+scenarios:
+  - symbol-inspection       # Querying symbol information
+  - symbol-discovery        # Finding symbols by pattern
+  - cross-reference         # Navigating code relationships
+  - macro-understanding     # Understanding macro transformations

@@ -139,7 +139,142 @@ Returns a list of alists with name, description, and inputSchema."
        (format nil "Current limits:~%  timeout: ~A seconds~A~%  max-output: ~A characters"
                (or cl-mcp-server.evaluator:*evaluation-timeout* "disabled")
                (if cl-mcp-server.evaluator:*evaluation-timeout* "" " (WARNING: no timeout)")
-               cl-mcp-server.evaluator:*max-output-chars*)))))
+               cl-mcp-server.evaluator:*max-output-chars*))))
+
+  ;; ========================================================================
+  ;; Phase A: Introspection Tools
+  ;; ========================================================================
+
+  ;; describe-symbol: Get comprehensive symbol information
+  (register-tool
+   "describe-symbol"
+   "Get comprehensive information about a Lisp symbol including its type, value, documentation, arglist, and source location. Uses SBCL introspection for detailed information."
+   '(("type" . "object")
+     ("required" . ("name"))
+     ("properties" . (("name" . (("type" . "string")
+                                 ("description" . "Symbol name to describe")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package name (defaults to CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((name (cdr (assoc "name" args :test #'string=)))
+            (pkg-name (cdr (assoc "package" args :test #'string=)))
+            (pkg (if pkg-name
+                     (find-package (string-upcase pkg-name))
+                     (find-package "CL-USER"))))
+       (if (not pkg)
+           (format nil "Package ~A not found" pkg-name)
+           (multiple-value-bind (sym status)
+               (find-symbol (string-upcase name) pkg)
+             (if sym
+                 (format-symbol-info (introspect-symbol sym))
+                 (format nil "Symbol ~A not found in package ~A (status: ~A)"
+                         name (package-name pkg) status)))))))
+
+  ;; apropos-search: Search for symbols matching a pattern
+  (register-tool
+   "apropos-search"
+   "Search for symbols matching a pattern. Returns symbol names, types, and packages. Useful for discovering available functions, variables, and classes."
+   '(("type" . "object")
+     ("required" . ("pattern"))
+     ("properties" . (("pattern" . (("type" . "string")
+                                    ("description" . "Search pattern (case-insensitive substring)")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Limit search to this package (optional)")))
+                      ("type" . (("type" . "string")
+                                 ("description" . "Filter by type: function, macro, variable, class, generic-function")
+                                 ("enum" . ("function" "macro" "variable" "class" "generic-function")))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((pattern (cdr (assoc "pattern" args :test #'string=)))
+            (pkg-name (cdr (assoc "package" args :test #'string=)))
+            (type-str (cdr (assoc "type" args :test #'string=)))
+            (type-kw (when type-str
+                       (intern (string-upcase type-str) :keyword))))
+       (if (and pkg-name (not (find-package (string-upcase pkg-name))))
+           (format nil "Package ~A not found" pkg-name)
+           (let ((results (introspect-apropos pattern
+                                              :package pkg-name
+                                              :type type-kw)))
+             (format-apropos-results results pattern))))))
+
+  ;; who-calls: Find all functions that call a specified function
+  (register-tool
+   "who-calls"
+   "Find all functions that call the specified function. Uses SBCL's cross-reference database to track callers."
+   '(("type" . "object")
+     ("required" . ("name"))
+     ("properties" . (("name" . (("type" . "string")
+                                 ("description" . "Function name to find callers of")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package name (defaults to CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((name (cdr (assoc "name" args :test #'string=)))
+            (pkg-name (cdr (assoc "package" args :test #'string=)))
+            (pkg (if pkg-name
+                     (find-package (string-upcase pkg-name))
+                     (find-package "CL-USER"))))
+       (if (not pkg)
+           (format nil "Package ~A not found" pkg-name)
+           (let ((sym (find-symbol (string-upcase name) pkg)))
+             (if sym
+                 (let ((results (introspect-who-calls sym)))
+                   (format-who-calls-results results sym))
+                 (format nil "Symbol ~A not found in package ~A" name (package-name pkg))))))))
+
+  ;; who-references: Find all code that references a variable
+  (register-tool
+   "who-references"
+   "Find all code that references (reads) the specified variable or constant. Uses SBCL's cross-reference database."
+   '(("type" . "object")
+     ("required" . ("name"))
+     ("properties" . (("name" . (("type" . "string")
+                                 ("description" . "Variable name to find references to")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package name (defaults to CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((name (cdr (assoc "name" args :test #'string=)))
+            (pkg-name (cdr (assoc "package" args :test #'string=)))
+            (pkg (if pkg-name
+                     (find-package (string-upcase pkg-name))
+                     (find-package "CL-USER"))))
+       (if (not pkg)
+           (format nil "Package ~A not found" pkg-name)
+           (let ((sym (find-symbol (string-upcase name) pkg)))
+             (if sym
+                 (let ((results (introspect-who-references sym)))
+                   (format-who-references-results results sym))
+                 (format nil "Symbol ~A not found in package ~A" name (package-name pkg))))))))
+
+  ;; macroexpand-form: Expand macros in a form
+  (register-tool
+   "macroexpand-form"
+   "Expand macros in a Lisp form. Useful for understanding macro transformations and debugging macro usage."
+   '(("type" . "object")
+     ("required" . ("form"))
+     ("properties" . (("form" . (("type" . "string")
+                                 ("description" . "Lisp form to expand (as a string)")))
+                      ("full" . (("type" . "boolean")
+                                 ("description" . "If true, fully expand all macros recursively. Default: false (one step only)")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package context for reading the form (defaults to CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((form-str (cdr (assoc "form" args :test #'string=)))
+            (full (cdr (assoc "full" args :test #'string=)))
+            (pkg-name (cdr (assoc "package" args :test #'string=)))
+            (pkg (if pkg-name
+                     (find-package (string-upcase pkg-name))
+                     (find-package "CL-USER"))))
+       (if (not pkg)
+           (format nil "Package ~A not found" pkg-name)
+           (handler-case
+               (let ((result (introspect-macroexpand form-str :full full :package pkg)))
+                 (format-macroexpand-result result))
+             (error (e)
+               (format nil "Error expanding form: ~A" e))))))))
 
 ;;; ==========================================================================
 ;;; Tool Argument Validation

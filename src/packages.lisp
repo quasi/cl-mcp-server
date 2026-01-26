@@ -104,10 +104,34 @@
    #:*evaluation-timeout*
    #:*max-output-chars*))
 
+(defpackage #:cl-mcp-server.introspection
+  (:use #:cl)
+  (:export
+   ;; Symbol type classification
+   #:symbol-type-info
+   ;; A.1: describe-symbol
+   #:introspect-symbol
+   #:format-symbol-info
+   ;; A.2: apropos-search
+   #:introspect-apropos
+   #:format-apropos-results
+   ;; A.3: who-calls
+   #:introspect-who-calls
+   #:format-who-calls-results
+   ;; who-references
+   #:introspect-who-references
+   #:format-who-references-results
+   ;; A.4: macroexpand-form
+   #:introspect-macroexpand
+   #:format-macroexpand-result
+   ;; Helper
+   #:resolve-symbol))
+
 (defpackage #:cl-mcp-server.tools
   (:use #:cl
         #:cl-mcp-server.evaluator
-        #:cl-mcp-server.session)
+        #:cl-mcp-server.session
+        #:cl-mcp-server.introspection)
   (:export
    #:*tools*
    #:tool-definition

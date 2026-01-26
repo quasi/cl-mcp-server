@@ -29,6 +29,10 @@ features:
     status: draft
     description: Condition capture and structured error reporting
 
+  - name: introspection
+    status: draft
+    description: Phase A core introspection tools for SBCL image inspection
+
 generation:
   default_language: common-lisp
   default_implementation: sbcl

@@ -1,0 +1,53 @@
+genesis:
+  started: 2026-01-22T00:00:00Z
+  last_activity: 2026-01-26T00:00:00Z
+
+core:
+  vocabulary:
+    status: stable
+    terms: [Session, Evaluation, Condition, Transport, Tool, JSON-RPC]
+  ontology:
+    status: stable
+  invariants:
+    status: stable
+
+features:
+  mcp-protocol:
+    phase: stable
+    vocabulary: stable
+    contracts: stable
+    scenarios: stable
+    properties: not-started
+    verification: not-started
+
+  code-evaluator:
+    phase: stable
+    vocabulary: stable
+    contracts: stable
+    scenarios: stable
+    properties: not-started
+    verification: not-started
+
+  session-management:
+    phase: stable
+    vocabulary: stable
+    contracts: stable
+    scenarios: stable
+    properties: not-started
+    verification: not-started
+
+  error-handling:
+    phase: stable
+    vocabulary: stable
+    contracts: stable
+    scenarios: stable
+    properties: not-started
+    verification: not-started
+
+  introspection:
+    phase: review
+    vocabulary: stable
+    contracts: stable
+    scenarios: stable
+    properties: not-started
+    verification: not-started
