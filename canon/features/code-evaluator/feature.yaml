@@ -23,9 +23,11 @@ contracts:
   - configure-limits-tool # Safety limits configuration
 
 properties:
-  - evaluation-isolation
-  - output-capture
+  - evaluation-isolation   # Session state persists, isolated from other sessions
+  - output-capture        # stdout, stderr, warnings separated and captured
   - timeout-protection    # Phase 0: Evaluation timeout with backtrace
+  - state-persistence     # Definitions persist across evaluations (INV-003)
+  - condition-handling    # Errors don't crash server (INV-002, INV-006)
 
 scenarios:
   - basic-evaluation    # Arithmetic, strings, lists, multiple values

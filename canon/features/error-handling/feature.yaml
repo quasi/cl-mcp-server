@@ -17,8 +17,10 @@ contracts:
   - condition-report    # Error/warning format specification
 
 properties:
-  - condition-capture
-  - backtrace-formatting
+  - condition-type-preservation    # INV-006: Condition types preserved in reports
+  - error-capture-stability        # INV-002: Server never crashes on errors
+  - structured-error-response      # Consistent error format with sections
+  - warning-capture-muffling       # Warnings captured and muffled, not fatal
 
 scenarios:
   - evaluation-errors   # undefined-function, type-error, etc.

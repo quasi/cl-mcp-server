@@ -16,8 +16,10 @@ contracts:
   - session-state       # What persists, state management tools
 
 properties:
-  - state-persistence
-  - package-context
+  - state-persistence      # Definitions persist across evaluations (INV-003)
+  - package-context        # Package switches persist between calls
+  - session-lifecycle      # Reset returns to fresh state
+  - definition-visibility  # list-definitions accurately reflects state
 
 scenarios:
   - state-persistence   # Definitions survive across evaluations

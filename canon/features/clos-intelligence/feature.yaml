@@ -1,0 +1,39 @@
+feature:
+  name: clos-intelligence
+  version: 0.1.0
+  status: draft
+  description: |
+    Phase D: CLOS Intelligence
+
+    Provides deep inspection of CLOS (Common Lisp Object System) classes
+    and methods. Allows Claude to understand class hierarchies, slot
+    definitions, method specialization, and object-oriented structure.
+
+    Key capabilities:
+    - Complete class information (slots, supers, subs, metaclass)
+    - Method discovery by class specialization
+    - Slot accessor identification
+    - Class hierarchy navigation
+    - Method combination inspection
+
+depends_on:
+  core: true
+  features:
+    - session-management  # Package context
+    - introspection       # Symbol lookup
+
+contracts:
+  - class-info-tool          # Comprehensive class inspection
+  - find-methods-tool        # Methods specialized on a class
+
+properties:
+  - class-hierarchy-accuracy           # Superclasses and subclasses correctly reported
+  - slot-information-completeness      # All slots with types, initargs, accessors reported
+  - method-discovery-completeness      # All methods specialized on a class are found
+  - mop-reflection-safety              # MOP introspection doesn't modify class definitions
+
+scenarios:
+  - class-exploration         # Understanding a class
+  - method-discovery          # Finding applicable methods
+  - hierarchy-navigation      # Following inheritance
+  - slot-inspection          # Understanding class structure

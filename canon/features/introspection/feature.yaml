@@ -27,13 +27,20 @@ contracts:
   - who-calls-tool          # Cross-reference: callers
   - who-references-tool     # Cross-reference: variable users
   - macroexpand-form-tool   # Macro expansion
+  - validate-syntax-tool    # Syntax validation without execution
 
 properties:
-  - sbcl-specific           # Uses sb-introspect, SBCL-only
-  - read-only               # No state modification
+  - read-only-guarantee              # No state modification by any tool
+  - symbol-information-accuracy      # describe-symbol reports current state
+  - cross-reference-correctness      # who-calls/who-references completeness
+  - macro-expansion-correctness      # Expansion matches Lisp compiler
+  - sbcl-introspection-guarantees    # Correct sb-introspect API usage
+  - syntax-validation-safety         # validate-syntax is completely safe
+  - symbol-discovery-completeness    # apropos-search finds all matches
 
 scenarios:
   - symbol-inspection       # Querying symbol information
   - symbol-discovery        # Finding symbols by pattern
   - cross-reference         # Navigating code relationships
   - macro-understanding     # Understanding macro transformations
+  - syntax-validation       # Safe syntax checking

@@ -1,0 +1,47 @@
+feature:
+  name: asdf-integration
+  version: 0.1.0
+  status: draft
+  description: |
+    Phase E: ASDF & Quicklisp Integration
+
+    Provides system-level operations for loading, inspecting, and managing
+    Common Lisp systems. Integrates with ASDF (Another System Definition
+    Facility) and Quicklisp for dependency management.
+
+    Key capabilities:
+    - System information and metadata
+    - Dependency graph traversal
+    - System loading and compilation
+    - Quicklisp search and installation
+    - Local system discovery
+    - Individual file loading
+
+depends_on:
+  core: true
+  features:
+    - session-management  # Session system state
+    - code-evaluator      # Loading code
+
+contracts:
+  - describe-system-tool          # Get system information
+  - system-dependencies-tool      # Dependency graph
+  - list-local-systems-tool       # Find available systems
+  - find-system-file-tool         # Locate .asd files
+  - quickload-tool                # Load via Quicklisp
+  - quicklisp-search-tool         # Search Quicklisp
+  - load-file-tool                # Load individual files
+
+properties:
+  - system-dependency-accuracy         # Dependency graphs are complete and correct
+  - quickload-safety                   # quickload downloads only from trusted sources
+  - system-state-tracking              # Loaded systems are tracked accurately
+  - load-idempotency                   # Loading same system twice is safe
+  - dependency-resolution-correctness  # Transitive dependencies correctly resolved
+
+scenarios:
+  - system-inspection          # Understanding a system
+  - dependency-analysis        # Analyzing dependencies
+  - system-loading             # Loading systems
+  - quicklisp-installation     # Installing external libraries
+  - local-system-discovery     # Finding available systems

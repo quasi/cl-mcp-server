@@ -1,0 +1,38 @@
+feature:
+  name: enhanced-evaluation
+  version: 0.1.0
+  status: draft
+  description: |
+    Phase B: Enhanced Evaluation Tools
+
+    Extends basic code evaluation with compilation checking, timing analysis,
+    and detailed profiling capabilities. These tools help Claude understand
+    code performance, catch compile-time errors, and analyze execution costs
+    without modifying the running system.
+
+    Key capabilities:
+    - Compilation without execution (catch type errors and warnings)
+    - Detailed timing and memory profiling of code execution
+    - Enhanced evaluate-lisp with package context and timing capture
+
+depends_on:
+  core: true
+  features:
+    - session-management  # Package context
+    - code-evaluator      # Base evaluation
+
+contracts:
+  - compile-form-tool         # Compile without executing
+  - time-execution-tool       # Detailed timing and memory profiling
+
+properties:
+  - compilation-safety           # compile-form never executes code
+  - compilation-completeness     # All compiler messages captured
+  - timing-accuracy             # time-execution reports match actual costs
+  - timing-isolation            # Timing excludes MCP overhead
+  - memory-tracking-accuracy    # Allocation measurements are correct
+
+scenarios:
+  - compilation-checking      # Check code before execution
+  - performance-profiling     # Measure execution costs
+  - type-error-detection      # Catch compile-time type errors

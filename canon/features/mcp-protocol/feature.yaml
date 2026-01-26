@@ -18,8 +18,11 @@ contracts:
   - transport           # Stdio transport specification
 
 properties:
-  - protocol-conformance
-  - message-integrity
+  - protocol-conformance           # All messages conform to JSON-RPC 2.0
+  - request-response-guarantee     # Every request gets exactly one response
+  - initialization-state-machine   # Server must be initialized before use
+  - error-response-stability       # Errors don't crash server
+  - message-integrity              # Messages are well-formed newline-delimited JSON
 
 scenarios:
   - initialization-handshake

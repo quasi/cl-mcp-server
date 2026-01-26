@@ -1,6 +1,7 @@
 genesis:
   started: 2026-01-22T00:00:00Z
-  last_activity: 2026-01-26T22:30:00Z
+  last_activity: 2026-01-26T23:30:00Z
+  status: complete
 
 core:
   vocabulary:
@@ -17,32 +18,32 @@ features:
     vocabulary: stable
     contracts: stable
     scenarios: stable
-    properties: not-started
-    verification: not-started
+    properties: stable
+    verification: stable
 
   code-evaluator:
     phase: stable
     vocabulary: stable
     contracts: stable
     scenarios: stable
-    properties: not-started
-    verification: not-started
+    properties: stable
+    verification: stable
 
   session-management:
     phase: stable
     vocabulary: stable
     contracts: stable
     scenarios: stable
-    properties: not-started
-    verification: not-started
+    properties: stable
+    verification: stable
 
   error-handling:
     phase: stable
     vocabulary: stable
     contracts: stable
     scenarios: stable
-    properties: not-started
-    verification: not-started
+    properties: stable
+    verification: stable
 
   introspection:
     phase: stable
@@ -50,8 +51,8 @@ features:
     vocabulary: stable
     contracts: stable
     scenarios: stable
-    properties: not-started
-    verification: not-started
+    properties: stable
+    verification: stable
     tools:
       - describe-symbol
       - apropos-search
@@ -65,9 +66,9 @@ features:
     description: "Phase B - Enhanced evaluation with timing, compilation, and profiling"
     vocabulary: stable
     contracts: stable
-    scenarios: not-started
-    properties: not-started
-    verification: not-started
+    scenarios: stable
+    properties: stable
+    verification: stable
     tools:
       - evaluate-lisp (enhanced with package, capture-time)
       - compile-form (new)
@@ -79,8 +80,8 @@ features:
     vocabulary: stable
     contracts: stable
     scenarios: stable
-    properties: not-started
-    verification: not-started
+    properties: stable
+    verification: stable
     tools:
       - describe-last-error (new - get detailed info about most recent error)
       - get-backtrace (new - get stack trace from last error)
@@ -91,8 +92,8 @@ features:
     vocabulary: stable
     contracts: stable
     scenarios: stable
-    properties: not-started
-    verification: not-started
+    properties: stable
+    verification: stable
     tools:
       - class-info (new - get comprehensive class information including slots)
       - find-methods (new - find all methods specialized on a class)
@@ -103,8 +104,8 @@ features:
     vocabulary: stable
     contracts: stable
     scenarios: stable
-    properties: not-started
-    verification: not-started
+    properties: stable
+    verification: stable
     tools:
       - describe-system (new - get comprehensive ASDF system information)
       - system-dependencies (new - get dependency graph with transitive option)
@@ -120,8 +121,8 @@ features:
     vocabulary: stable
     contracts: stable
     scenarios: stable
-    properties: not-started
-    verification: not-started
+    properties: stable
+    verification: stable
     tools:
       - profile-code (new - statistical profiling with CPU/time/alloc modes)
       - profile-functions (new - deterministic profiling of specific functions)

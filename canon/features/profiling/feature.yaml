@@ -1,0 +1,43 @@
+feature:
+  name: profiling
+  version: 0.1.0
+  status: draft
+  description: |
+    Phase F: Performance Profiling Tools
+
+    Provides comprehensive performance analysis using SBCL's statistical
+    and deterministic profiling capabilities. Enables identification of
+    hot spots, memory bottlenecks, and optimization opportunities.
+
+    Key capabilities:
+    - Statistical profiling (sampling-based)
+    - Deterministic function profiling
+    - Memory usage reporting
+    - Allocation profiling
+    - GC statistics
+
+depends_on:
+  core: true
+  features:
+    - session-management  # Session profiling state
+    - code-evaluator      # Code execution
+    - enhanced-evaluation # Timing baseline
+
+contracts:
+  - profile-code-tool            # Statistical profiling
+  - profile-functions-tool       # Deterministic profiling
+  - memory-report-tool           # Memory usage
+  - allocation-profile-tool      # Allocation profiling
+
+properties:
+  - sampling-accuracy               # Statistical profiling samples accurately represent execution
+  - profiling-overhead-bounded      # Profiling doesn't change performance characteristics significantly
+  - hot-spot-identification         # Most expensive functions correctly identified
+  - memory-tracking-accuracy        # Allocation and GC statistics are accurate
+  - profiling-safety                # Profiling never crashes or corrupts program state
+
+scenarios:
+  - performance-bottleneck-identification   # Finding slow code
+  - memory-leak-detection                   # Finding allocation hot spots
+  - function-cost-analysis                  # Measuring specific functions
+  - gc-behavior-analysis                    # Understanding GC impact

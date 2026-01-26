@@ -1,0 +1,38 @@
+feature:
+  name: error-intelligence
+  version: 0.1.0
+  status: draft
+  description: |
+    Phase C: Error Intelligence
+
+    Provides structured access to error information including detailed
+    backtraces, available restarts, and error context. Extends basic
+    error handling with SBCL's powerful debugging capabilities, allowing
+    Claude to understand and diagnose failures.
+
+    Key capabilities:
+    - Detailed error type and message extraction
+    - Full backtrace with frame information
+    - Available restarts at error point
+    - Error history tracking across evaluations
+
+depends_on:
+  core: true
+  features:
+    - session-management  # Session error state
+    - code-evaluator      # Evaluation errors
+
+contracts:
+  - describe-last-error-tool    # Get detailed error information
+  - get-backtrace-tool          # Get stack trace from last error
+
+properties:
+  - error-capture-completeness        # All error details captured
+  - backtrace-accuracy                # Stack frames match actual call chain
+  - error-state-preservation          # Error context persists until next error
+  - restart-information-completeness  # Available restarts captured and reported
+
+scenarios:
+  - error-diagnosis           # Understanding what went wrong
+  - stack-navigation          # Following the call chain
+  - restart-exploration       # Finding recovery options
