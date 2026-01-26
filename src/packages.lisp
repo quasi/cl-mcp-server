@@ -139,6 +139,16 @@
    ;; B.2: compile-form
    #:introspect-compile-form
    #:format-compile-result
+   ;; D.1: class-info
+   #:introspect-slot
+   #:introspect-class
+   #:format-slot-info
+   #:format-class-info
+   ;; D.2: find-methods
+   #:introspect-method
+   #:introspect-find-methods
+   #:format-method-info
+   #:format-find-methods-results
    ;; Helper
    #:resolve-symbol))
 

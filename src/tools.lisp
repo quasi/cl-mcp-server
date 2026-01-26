@@ -379,7 +379,72 @@ Returns a list of alists with name, description, and inputSchema."
        (if (and session (session-last-error session))
            (cl-mcp-server.error-format:format-backtrace-detail
             (session-last-error session) :max-frames max-frames)
-           "No error recorded in this session. Run some code that causes an error first.")))))
+           "No error recorded in this session. Run some code that causes an error first."))))
+
+  ;; ========================================================================
+  ;; Phase D: CLOS Intelligence Tools
+  ;; ========================================================================
+
+  ;; class-info: Get complete class information
+  (register-tool
+   "class-info"
+   "Get complete information about a CLOS class including its slots, superclasses, subclasses, and metaclass. Works with any class in the running image."
+   '(("type" . "object")
+     ("required" . ("class"))
+     ("properties" . (("class" . (("type" . "string")
+                                  ("description" . "Class name to inspect")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package name (defaults to CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((class-name (cdr (assoc "class" args :test #'string=)))
+            (pkg-name (cdr (assoc "package" args :test #'string=)))
+            (pkg (if pkg-name
+                     (find-package (string-upcase pkg-name))
+                     (find-package "CL-USER"))))
+       (if (not pkg)
+           (format nil "Package ~A not found" pkg-name)
+           (let ((sym (find-symbol (string-upcase class-name) pkg)))
+             (if (and sym (find-class sym nil))
+                 (handler-case
+                     (format-class-info (introspect-class sym))
+                   (error (e)
+                     (format nil "Error inspecting class: ~A" e)))
+                 (format nil "Class ~A not found in package ~A"
+                         class-name (package-name pkg))))))))
+
+  ;; find-methods: Find all methods specialized on a class
+  (register-tool
+   "find-methods"
+   "Find all methods that are specialized on a given class. Shows the generic function name, qualifiers, and specializers for each method. Useful for understanding what operations are available on a class."
+   '(("type" . "object")
+     ("required" . ("class"))
+     ("properties" . (("class" . (("type" . "string")
+                                  ("description" . "Class name to find methods for")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package name (defaults to CL-USER)")))
+                      ("include-inherited" . (("type" . "boolean")
+                                              ("description" . "Include methods from superclasses (default: false)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((class-name (cdr (assoc "class" args :test #'string=)))
+            (pkg-name (cdr (assoc "package" args :test #'string=)))
+            (include-inherited (cdr (assoc "include-inherited" args :test #'string=)))
+            (pkg (if pkg-name
+                     (find-package (string-upcase pkg-name))
+                     (find-package "CL-USER"))))
+       (if (not pkg)
+           (format nil "Package ~A not found" pkg-name)
+           (let ((sym (find-symbol (string-upcase class-name) pkg)))
+             (if (and sym (find-class sym nil))
+                 (handler-case
+                     (let ((results (introspect-find-methods sym
+                                                             :include-inherited include-inherited)))
+                       (format-find-methods-results results sym))
+                   (error (e)
+                     (format nil "Error finding methods: ~A" e)))
+                 (format nil "Class ~A not found in package ~A"
+                         class-name (package-name pkg)))))))))
 
 ;;; ==========================================================================
 ;;; Usage Guide Content
@@ -407,6 +472,8 @@ Definitions persist across calls within a session.
 | time-execution | Profile with timing | Performance analysis |
 | describe-last-error | Get last error details | After an error occurs |
 | get-backtrace | Get error stack trace | Diagnosing errors |
+| class-info | Inspect CLOS classes | Understanding class structure |
+| find-methods | Find methods on a class | Discovering class operations |
 | list-definitions | Show session state | Review what's defined |
 | reset-session | Clear all state | Start fresh |
 

@@ -418,6 +418,209 @@ Returns a plist with:
             (format s "Approximate location: line ~D~%" (getf result :line-hint)))))))
 
 ;;; ==========================================================================
+;;; D.1: class-info - CLOS Class Introspection
+;;; ==========================================================================
+
+(defun introspect-slot (slot-def)
+  "Extract information from a slot definition.
+Works for both direct and effective slot definitions.
+Returns a plist with :name, :type, :initargs, :initform, :readers, :writers, :allocation."
+  (let ((is-direct (typep slot-def 'sb-mop:direct-slot-definition)))
+    (list :name (sb-mop:slot-definition-name slot-def)
+          :type (let ((type (sb-mop:slot-definition-type slot-def)))
+                  (if (eq type t) nil type))
+          :initargs (sb-mop:slot-definition-initargs slot-def)
+          :initform (when is-direct
+                      (let ((fn (sb-mop:slot-definition-initfunction slot-def)))
+                        (if fn
+                            (let ((*print-length* 10)
+                                  (*print-level* 3))
+                              (handler-case
+                                  (prin1-to-string (funcall fn))
+                                (error () "<error evaluating initform>")))
+                            nil)))
+          :readers (when is-direct
+                     (sb-mop:slot-definition-readers slot-def))
+          :writers (when is-direct
+                     (sb-mop:slot-definition-writers slot-def))
+          :allocation (sb-mop:slot-definition-allocation slot-def))))
+
+(defun introspect-class (class-designator)
+  "Get comprehensive information about a CLOS class.
+CLASS-DESIGNATOR can be a class object, symbol naming a class, or string.
+Returns a plist with:
+  :name - class name symbol
+  :package - package name string
+  :metaclass - metaclass name
+  :documentation - class documentation
+  :superclasses - list of direct superclass names
+  :subclasses - list of direct subclass names
+  :precedence-list - class precedence list (all superclasses)
+  :direct-slots - slots defined directly on this class
+  :effective-slots - all slots including inherited
+  :default-initargs - default initialization arguments"
+  (let* ((class (etypecase class-designator
+                  (class class-designator)
+                  (symbol (or (find-class class-designator nil)
+                              (error "Class ~A not found" class-designator)))
+                  (string (let ((sym (find-symbol (string-upcase class-designator))))
+                            (if sym
+                                (or (find-class sym nil)
+                                    (error "~A is not a class" class-designator))
+                                (error "Symbol ~A not found" class-designator))))))
+         (name (class-name class)))
+    ;; Ensure class is finalized so we can get effective slots
+    (unless (sb-mop:class-finalized-p class)
+      (sb-mop:finalize-inheritance class))
+    (list :name name
+          :package (when (and name (symbol-package name))
+                     (package-name (symbol-package name)))
+          :metaclass (class-name (class-of class))
+          :documentation (documentation class t)
+          :superclasses (mapcar #'class-name
+                                (sb-mop:class-direct-superclasses class))
+          :subclasses (mapcar #'class-name
+                              (sb-mop:class-direct-subclasses class))
+          :precedence-list (mapcar #'class-name
+                                   (sb-mop:class-precedence-list class))
+          :direct-slots (mapcar #'introspect-slot
+                                (sb-mop:class-direct-slots class))
+          :effective-slots (mapcar #'introspect-slot
+                                   (sb-mop:class-slots class))
+          :default-initargs (let ((initargs (sb-mop:class-default-initargs class)))
+                              (mapcar (lambda (ia)
+                                        (list :key (first ia)
+                                              :value (let ((*print-length* 10)
+                                                           (*print-level* 3))
+                                                       (handler-case
+                                                           (prin1-to-string
+                                                            (funcall (third ia)))
+                                                         (error () "<error>")))))
+                                      initargs)))))
+
+(defun format-slot-info (slot &key (indent "  "))
+  "Format a slot info plist as a human-readable string."
+  (with-output-to-string (s)
+    (format s "~A~A" indent (getf slot :name))
+    (when (getf slot :type)
+      (format s " : ~S" (getf slot :type)))
+    (format s "~%")
+    (when (getf slot :initargs)
+      (format s "~A  initargs: ~{~S~^, ~}~%" indent (getf slot :initargs)))
+    (when (getf slot :initform)
+      (format s "~A  initform: ~A~%" indent (getf slot :initform)))
+    (when (getf slot :readers)
+      (format s "~A  readers: ~{~A~^, ~}~%" indent (getf slot :readers)))
+    (when (getf slot :writers)
+      (format s "~A  writers: ~{~A~^, ~}~%" indent (getf slot :writers)))
+    (unless (eq (getf slot :allocation) :instance)
+      (format s "~A  allocation: ~A~%" indent (getf slot :allocation)))))
+
+(defun format-class-info (info)
+  "Format class info plist as human-readable string."
+  (with-output-to-string (s)
+    (format s "~A::~A [~A]~%"
+            (or (getf info :package) "#")
+            (getf info :name)
+            (getf info :metaclass))
+    (when (getf info :documentation)
+      (format s "~%~A~%~%" (getf info :documentation)))
+    (format s "~%Superclasses: ~{~A~^, ~}~%"
+            (or (getf info :superclasses) '("(none)")))
+    (when (getf info :subclasses)
+      (format s "Subclasses: ~{~A~^, ~}~%" (getf info :subclasses)))
+    (let ((direct-slots (getf info :direct-slots)))
+      (if direct-slots
+          (progn
+            (format s "~%Direct Slots (~D):~%" (length direct-slots))
+            (dolist (slot direct-slots)
+              (write-string (format-slot-info slot) s)))
+          (format s "~%No direct slots~%")))
+    (let ((inherited-slots (set-difference
+                            (getf info :effective-slots)
+                            (getf info :direct-slots)
+                            :key (lambda (sl) (getf sl :name)))))
+      (when inherited-slots
+        (format s "~%Inherited Slots (~D):~%" (length inherited-slots))
+        (dolist (slot inherited-slots)
+          (format s "  ~A~@[ : ~S~]~%"
+                  (getf slot :name)
+                  (getf slot :type)))))
+    (when (getf info :default-initargs)
+      (format s "~%Default Initargs:~%")
+      (dolist (ia (getf info :default-initargs))
+        (format s "  ~A = ~A~%" (getf ia :key) (getf ia :value))))))
+
+;;; ==========================================================================
+;;; D.2: find-methods - Find Methods Specialized on a Class
+;;; ==========================================================================
+
+(defun introspect-method (method)
+  "Extract information from a method object.
+Returns a plist with :generic-function, :qualifiers, :lambda-list, :specializers, :documentation."
+  (let ((gf (sb-mop:method-generic-function method)))
+    (list :generic-function (when gf
+                              (let ((name (sb-mop:generic-function-name gf)))
+                                (if (symbolp name)
+                                    (symbol-name name)
+                                    (prin1-to-string name))))
+          :qualifiers (sb-mop:method-qualifiers method)
+          :lambda-list (sb-mop:method-lambda-list method)
+          :specializers (mapcar (lambda (spec)
+                                  (cond ((typep spec 'class)
+                                         (class-name spec))
+                                        ((typep spec 'sb-mop:eql-specializer)
+                                         (list 'eql (sb-mop:eql-specializer-object spec)))
+                                        (t spec)))
+                                (sb-mop:method-specializers method))
+          :documentation (documentation method t))))
+
+(defun introspect-find-methods (class-designator &key include-inherited)
+  "Find all methods specialized on a class.
+CLASS-DESIGNATOR can be a class object, symbol, or string.
+If INCLUDE-INHERITED is true, also include methods from superclasses.
+Returns a list of method info plists."
+  (let* ((class (etypecase class-designator
+                  (class class-designator)
+                  (symbol (or (find-class class-designator nil)
+                              (error "Class ~A not found" class-designator)))
+                  (string (let ((sym (find-symbol (string-upcase class-designator))))
+                            (if sym
+                                (or (find-class sym nil)
+                                    (error "~A is not a class" class-designator))
+                                (error "Symbol ~A not found" class-designator))))))
+         (methods (sb-mop:specializer-direct-methods class)))
+    (when include-inherited
+      (dolist (super (rest (sb-mop:class-precedence-list class)))
+        (setf methods (append methods (sb-mop:specializer-direct-methods super)))))
+    ;; Remove duplicates and sort by generic function name
+    (let ((unique-methods (remove-duplicates methods)))
+      (sort (mapcar #'introspect-method unique-methods)
+            #'string<
+            :key (lambda (m) (or (getf m :generic-function) ""))))))
+
+(defun format-method-info (method-info)
+  "Format a method info plist as human-readable string."
+  (with-output-to-string (s)
+    (format s "  ~A"
+            (or (getf method-info :generic-function) "(anonymous)"))
+    (when (getf method-info :qualifiers)
+      (format s " ~{~A~^ ~}" (getf method-info :qualifiers)))
+    (format s " (~{~A~^, ~})~%"
+            (getf method-info :specializers))))
+
+(defun format-find-methods-results (results class-name)
+  "Format find-methods results as human-readable string."
+  (with-output-to-string (s)
+    (if results
+        (progn
+          (format s "~D method~:P specialized on ~A:~%~%"
+                  (length results) class-name)
+          (dolist (m results)
+            (write-string (format-method-info m) s)))
+        (format s "No methods specialized on ~A~%" class-name))))
+
+;;; ==========================================================================
 ;;; Helper: Resolve Symbol from String
 ;;; ==========================================================================
 

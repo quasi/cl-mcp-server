@@ -351,3 +351,126 @@
                  nil)))
     (is (stringp result))
     (is (search "invalid" result :test #'char-equal))))
+
+;;; ==========================================================================
+;;; Phase D: CLOS Intelligence Tests
+;;; ==========================================================================
+
+;; Define a test class for CLOS tests
+(defclass test-clos-person ()
+  ((name :initarg :name :accessor test-person-name :type string)
+   (age :initarg :age :accessor test-person-age :initform 0))
+  (:documentation "Test class for CLOS introspection tests"))
+
+(test introspect-slot-direct
+  "introspect-slot extracts slot info from direct slot"
+  (let* ((class (find-class 'test-clos-person))
+         (slots (sb-mop:class-direct-slots class))
+         (name-slot (find 'name slots :key #'sb-mop:slot-definition-name))
+         (info (cl-mcp-server.introspection:introspect-slot name-slot)))
+    (is (eq 'name (getf info :name)))
+    (is (eq 'string (getf info :type)))
+    (is (member :name (getf info :initargs)))
+    (is (member 'test-person-name (getf info :readers)))))
+
+(test introspect-class-basic
+  "introspect-class returns basic class info"
+  (let ((info (cl-mcp-server.introspection:introspect-class 'test-clos-person)))
+    (is (eq 'test-clos-person (getf info :name)))
+    (is (string= "CL-MCP-SERVER-TESTS" (getf info :package)))
+    (is (eq 'standard-class (getf info :metaclass)))
+    (is (string= "Test class for CLOS introspection tests"
+                 (getf info :documentation)))))
+
+(test introspect-class-slots
+  "introspect-class includes slot information"
+  (let ((info (cl-mcp-server.introspection:introspect-class 'test-clos-person)))
+    (is (= 2 (length (getf info :direct-slots))))
+    (is (find 'name (getf info :direct-slots) :key (lambda (s) (getf s :name))))
+    (is (find 'age (getf info :direct-slots) :key (lambda (s) (getf s :name))))))
+
+(test introspect-class-superclasses
+  "introspect-class includes superclass info"
+  (let ((info (cl-mcp-server.introspection:introspect-class 'test-clos-person)))
+    (is (member 'standard-object (getf info :superclasses)))))
+
+(test introspect-class-from-string
+  "introspect-class works with string designator"
+  (let ((info (cl-mcp-server.introspection:introspect-class "test-clos-person")))
+    (is (eq 'test-clos-person (getf info :name)))))
+
+(test format-class-info-includes-name
+  "format-class-info includes class name"
+  (let* ((info (cl-mcp-server.introspection:introspect-class 'test-clos-person))
+         (formatted (cl-mcp-server.introspection:format-class-info info)))
+    (is (search "TEST-CLOS-PERSON" formatted))
+    (is (search "STANDARD-CLASS" formatted))))
+
+(test format-class-info-includes-slots
+  "format-class-info includes slot details"
+  (let* ((info (cl-mcp-server.introspection:introspect-class 'test-clos-person))
+         (formatted (cl-mcp-server.introspection:format-class-info info)))
+    (is (search "NAME" formatted))
+    (is (search "AGE" formatted))
+    (is (search "Direct Slots" formatted))))
+
+(test introspect-find-methods-basic
+  "introspect-find-methods finds methods on a class"
+  (let ((results (cl-mcp-server.introspection:introspect-find-methods 'test-clos-person)))
+    (is (listp results))
+    ;; Should find accessor methods
+    (is (find "TEST-PERSON-NAME" results
+              :key (lambda (m) (getf m :generic-function))
+              :test #'string=))))
+
+(test introspect-find-methods-includes-specializers
+  "introspect-find-methods includes specializer info"
+  (let ((results (cl-mcp-server.introspection:introspect-find-methods 'test-clos-person)))
+    (when results
+      (let ((first-method (first results)))
+        (is (not (null (getf first-method :specializers))))))))
+
+(test format-find-methods-results-format
+  "format-find-methods-results produces readable output"
+  (let* ((results (cl-mcp-server.introspection:introspect-find-methods 'test-clos-person))
+         (formatted (cl-mcp-server.introspection:format-find-methods-results
+                     results 'test-clos-person)))
+    (is (stringp formatted))
+    (is (search "method" formatted))))
+
+;; Tool Registration Tests for Phase D
+(test class-info-tool-registered
+  "class-info tool is registered"
+  (is (not (null (cl-mcp-server.tools:get-tool "class-info")))))
+
+(test find-methods-tool-registered
+  "find-methods tool is registered"
+  (is (not (null (cl-mcp-server.tools:get-tool "find-methods")))))
+
+;; Tool Call Tests for Phase D
+(test call-class-info-tool
+  "calling class-info tool returns class information"
+  (let ((result (cl-mcp-server.tools:call-tool
+                 "class-info"
+                 '(("class" . "standard-class") ("package" . "CL"))
+                 nil)))
+    (is (stringp result))
+    (is (search "STANDARD-CLASS" result))))
+
+(test call-class-info-tool-unknown-class
+  "class-info handles unknown class"
+  (let ((result (cl-mcp-server.tools:call-tool
+                 "class-info"
+                 '(("class" . "nonexistent-class-xyz"))
+                 nil)))
+    (is (search "not found" result))))
+
+(test call-find-methods-tool
+  "calling find-methods tool returns method list"
+  (let ((result (cl-mcp-server.tools:call-tool
+                 "find-methods"
+                 '(("class" . "test-clos-person")
+                   ("package" . "CL-MCP-SERVER-TESTS"))
+                 nil)))
+    (is (stringp result))
+    (is (search "method" result))))

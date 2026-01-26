@@ -84,3 +84,15 @@ features:
     tools:
       - describe-last-error (new - get detailed info about most recent error)
       - get-backtrace (new - get stack trace from last error)
+
+  clos-intelligence:
+    phase: stable
+    description: "Phase D - CLOS class and method introspection"
+    vocabulary: stable
+    contracts: stable
+    scenarios: stable
+    properties: not-started
+    verification: not-started
+    tools:
+      - class-info (new - get comprehensive class information including slots)
+      - find-methods (new - find all methods specialized on a class)
