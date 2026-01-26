@@ -30,7 +30,11 @@
    #:format-backtrace
    #:*max-backtrace-depth*
    #:*print-backtrace-p*
-   #:with-error-capture))
+   #:with-error-capture
+   ;; Phase C: Structured error capture
+   #:capture-structured-error
+   #:format-structured-error
+   #:format-backtrace-detail))
 
 (defpackage #:cl-mcp-server.json-rpc
   (:use #:cl #:cl-mcp-server.conditions)
@@ -76,6 +80,7 @@
    #:session-package
    #:session-loaded-systems
    #:session-definitions
+   #:session-last-error
    #:reset-session
    #:list-definitions
    #:format-definitions
@@ -97,6 +102,7 @@
    #:result-stderr
    #:result-warnings
    #:result-error
+   #:result-structured-error
    #:result-success-p
    #:result-definitions
    #:result-timing

@@ -1,6 +1,6 @@
 genesis:
   started: 2026-01-22T00:00:00Z
-  last_activity: 2026-01-26T19:00:00Z
+  last_activity: 2026-01-26T21:30:00Z
 
 core:
   vocabulary:
@@ -72,3 +72,15 @@ features:
       - evaluate-lisp (enhanced with package, capture-time)
       - compile-form (new)
       - time-execution (new)
+
+  error-intelligence:
+    phase: stable
+    description: "Phase C - Structured error capture with backtrace and restart info"
+    vocabulary: stable
+    contracts: stable
+    scenarios: stable
+    properties: not-started
+    verification: not-started
+    tools:
+      - describe-last-error (new - get detailed info about most recent error)
+      - get-backtrace (new - get stack trace from last error)

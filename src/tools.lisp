@@ -90,6 +90,9 @@ Returns a list of alists with name, description, and inputSchema."
          (setf (session-definitions session)
                (append (result-definitions result)
                        (session-definitions session))))
+       ;; Phase C: Store structured error in session for later inspection
+       (when (and session (result-structured-error result))
+         (setf (session-last-error session) (result-structured-error result)))
        (format-result result))))
 
   ;; list-definitions: List definitions in the current session
@@ -345,7 +348,38 @@ Returns a list of alists with name, description, and inputSchema."
      (let* ((code (cdr (assoc "code" args :test #'string=)))
             (pkg-name (cdr (assoc "package" args :test #'string=)))
             (result (evaluate-code code :package pkg-name :capture-time t)))
-       (format-timing-result result)))))
+       (format-timing-result result))))
+
+  ;; ========================================================================
+  ;; Phase C: Error Intelligence Tools
+  ;; ========================================================================
+
+  ;; describe-last-error: Get detailed info about the most recent error
+  (register-tool
+   "describe-last-error"
+   "Get detailed information about the most recent error. Returns the error type, message, available restarts, and backtrace from the last failed evaluation. Useful for diagnosing why code failed."
+   `(("type" . "object")
+     ("properties" . ,(make-hash-table :test #'equal)))
+   (lambda (args session)
+     (declare (ignore args))
+     (if (and session (session-last-error session))
+         (cl-mcp-server.error-format:format-structured-error
+          (session-last-error session))
+         "No error recorded in this session. Run some code that causes an error first.")))
+
+  ;; get-backtrace: Get stack trace from the last error
+  (register-tool
+   "get-backtrace"
+   "Get the stack trace from the most recent error. Shows the call stack at the point where the error occurred, with frame numbers and function calls. Use max-frames to limit output."
+   '(("type" . "object")
+     ("properties" . (("max-frames" . (("type" . "integer")
+                                       ("description" . "Maximum number of frames to return (default: 20)"))))))
+   (lambda (args session)
+     (let ((max-frames (or (cdr (assoc "max-frames" args :test #'string=)) 20)))
+       (if (and session (session-last-error session))
+           (cl-mcp-server.error-format:format-backtrace-detail
+            (session-last-error session) :max-frames max-frames)
+           "No error recorded in this session. Run some code that causes an error first.")))))
 
 ;;; ==========================================================================
 ;;; Usage Guide Content
@@ -371,6 +405,8 @@ Definitions persist across calls within a session.
 | apropos-search | Find symbols by pattern | Discovering functions |
 | macroexpand-form | Expand macros | Debug macro usage |
 | time-execution | Profile with timing | Performance analysis |
+| describe-last-error | Get last error details | After an error occurs |
+| get-backtrace | Get error stack trace | Diagnosing errors |
 | list-definitions | Show session state | Review what's defined |
 | reset-session | Clear all state | Start fresh |
 

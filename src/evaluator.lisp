@@ -29,17 +29,19 @@ warnings encountered, error information, definitions made, and timing info."
   (stderr "" :type string)
   (warnings nil :type list)
   (error nil)
+  (structured-error nil :type (or null list))  ; Phase C: structured error plist
   (definitions nil :type list)
   (timing nil :type list)  ; plist with :real-ms :run-ms :gc-ms :bytes-consed
   (package nil :type (or null string)))
 
-(defun make-evaluation-result (&key success-p values stdout stderr warnings error-info definitions timing package)
+(defun make-evaluation-result (&key success-p values stdout stderr warnings error-info structured-error definitions timing package)
   "Create an evaluation result with proper defaults.
 SUCCESS-P indicates whether evaluation completed without errors.
 VALUES is a list of string representations of return values.
 STDOUT and STDERR capture printed output during evaluation.
 WARNINGS is a list of formatted warning strings.
 ERROR-INFO contains formatted error information when evaluation fails.
+STRUCTURED-ERROR is a plist with :type :message :backtrace :restarts (Phase C).
 DEFINITIONS is a list of (type . name) pairs for definitions made.
 TIMING is a plist with :real-ms :run-ms :gc-ms :bytes-consed.
 PACKAGE is the package name where evaluation occurred."
@@ -50,6 +52,7 @@ PACKAGE is the package name where evaluation occurred."
    :stderr (or stderr "")
    :warnings (or warnings nil)
    :error (or error-info nil)
+   :structured-error structured-error
    :definitions (or definitions nil)
    :timing timing
    :package package))
@@ -230,6 +233,7 @@ Only the values from the last form are returned."
          (warnings-list nil)
          (result-values nil)
          (error-info nil)
+         (structured-error nil)
          (success-p nil)
          (definitions nil)
          (timing-info nil)
@@ -240,11 +244,16 @@ Only the values from the last form are returned."
                          (package package)
                          (symbol (or (find-package package)
                                      (error "Package ~A not found" package))))))
-    (handler-bind
-        ((warning (lambda (c)
-                    (push (format-warning c) warnings-list)
-                    (muffle-warning c))))
-      (handler-case
+    ;; handler-case must be OUTSIDE handler-bind for the error handler to fire
+    ;; before handler-case transfers control
+    (handler-case
+        (handler-bind
+            ((warning (lambda (c)
+                        (push (format-warning c) warnings-list)
+                        (muffle-warning c)))
+             ;; Phase C: Capture structured error info before handler-case unwinds
+             (error (lambda (c)
+                      (setf structured-error (capture-structured-error c)))))
           (let ((*standard-output* stdout-capture)
                 (*error-output* stderr-capture)
                 (*trace-output* stderr-capture)
@@ -265,13 +274,13 @@ Only the values from the last form are returned."
                         (%evaluate-with-timeout
                          (lambda () (evaluate-forms forms))
                          timeout)))
-              (setf success-p t)))
-        (evaluation-timeout (c)
-          (setf error-info (format-timeout-error c))
-          (setf success-p nil))
-        (error (c)
-          (setf error-info (format-error c))
-          (setf success-p nil))))
+              (setf success-p t))))
+      (evaluation-timeout (c)
+        (setf error-info (format-timeout-error c))
+        (setf success-p nil))
+      (error (c)
+        (setf error-info (format-error c))
+        (setf success-p nil)))
     (make-evaluation-result
      :success-p success-p
      :values (when success-p (format-values result-values))
@@ -279,6 +288,7 @@ Only the values from the last form are returned."
      :stderr (get-output-stream-string stderr-capture)
      :warnings (nreverse warnings-list)
      :error-info error-info
+     :structured-error structured-error
      :definitions (when success-p definitions)
      :timing timing-info
      :package (package-name eval-package))))

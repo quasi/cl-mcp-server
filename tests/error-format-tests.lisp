@@ -229,3 +229,100 @@
     (is (stringp error-string))
     (is (search "INVALID-PARAMS" error-string))
     (is (search "Bad parameter" error-string))))
+
+;;; ==========================================================================
+;;; Phase C: Structured Error Capture Tests
+;;; ==========================================================================
+
+(test capture-structured-error-basic
+  "capture-structured-error returns structured plist"
+  (let ((info (catch 'captured
+                (handler-bind ((error (lambda (c)
+                                        (throw 'captured
+                                          (cl-mcp-server.error-format:capture-structured-error c)))))
+                  (/ 1 0)))))
+    (is (listp info))
+    (is (stringp (getf info :type)))
+    (is (stringp (getf info :message)))
+    (is (listp (getf info :backtrace)))
+    (is (listp (getf info :restarts)))
+    (is (integerp (getf info :timestamp)))))
+
+(test capture-structured-error-type
+  "capture-structured-error includes correct error type"
+  (let ((info (catch 'captured
+                (handler-bind ((error (lambda (c)
+                                        (throw 'captured
+                                          (cl-mcp-server.error-format:capture-structured-error c)))))
+                  (/ 1 0)))))
+    (is (string= "DIVISION-BY-ZERO" (getf info :type)))))
+
+(test capture-structured-error-backtrace
+  "capture-structured-error includes parsed backtrace"
+  (let* ((info (catch 'captured
+                 (handler-bind ((error (lambda (c)
+                                         (throw 'captured
+                                           (cl-mcp-server.error-format:capture-structured-error c)))))
+                   (/ 1 0))))
+         (bt (getf info :backtrace)))
+    (is (> (length bt) 0))
+    ;; Each frame should have :number and :function
+    (dolist (frame bt)
+      (is (integerp (getf frame :number)))
+      (is (stringp (getf frame :function))))))
+
+(test capture-structured-error-restarts
+  "capture-structured-error includes restart info"
+  (let* ((info (catch 'captured
+                 (handler-bind ((error (lambda (c)
+                                         (throw 'captured
+                                           (cl-mcp-server.error-format:capture-structured-error c)))))
+                   (/ 1 0))))
+         (restarts (getf info :restarts)))
+    ;; Should have at least one restart
+    (is (> (length restarts) 0))
+    ;; Each restart should have :name and :description
+    (dolist (r restarts)
+      (is (or (null (getf r :name)) (stringp (getf r :name))))
+      (is (stringp (getf r :description))))))
+
+(test format-structured-error-output
+  "format-structured-error produces readable output"
+  (let* ((info (catch 'captured
+                 (handler-bind ((error (lambda (c)
+                                         (throw 'captured
+                                           (cl-mcp-server.error-format:capture-structured-error c)))))
+                   (/ 1 0))))
+         (output (cl-mcp-server.error-format:format-structured-error info)))
+    (is (stringp output))
+    (is (search "[ERROR]" output))
+    (is (search "DIVISION-BY-ZERO" output))
+    (is (search "[Restarts]" output))
+    (is (search "[Backtrace]" output))))
+
+(test format-backtrace-detail-output
+  "format-backtrace-detail produces detailed output"
+  (let* ((info (catch 'captured
+                 (handler-bind ((error (lambda (c)
+                                         (throw 'captured
+                                           (cl-mcp-server.error-format:capture-structured-error c)))))
+                   (/ 1 0))))
+         (output (cl-mcp-server.error-format:format-backtrace-detail info)))
+    (is (stringp output))
+    (is (search "Backtrace" output))
+    (is (search "Frame" output))))
+
+(test format-backtrace-detail-max-frames
+  "format-backtrace-detail respects max-frames"
+  (let* ((info (catch 'captured
+                 (handler-bind ((error (lambda (c)
+                                         (throw 'captured
+                                           (cl-mcp-server.error-format:capture-structured-error c)))))
+                   (/ 1 0))))
+         (output (cl-mcp-server.error-format:format-backtrace-detail info :max-frames 3)))
+    ;; Count "Frame N:" occurrences
+    (let ((count 0))
+      (loop for pos = (search "Frame " output :start2 0)
+                  then (search "Frame " output :start2 (1+ pos))
+            while pos do (incf count))
+      (is (<= count 3)))))

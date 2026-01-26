@@ -12,7 +12,8 @@
   "A REPL session with persistent state"
   (package (find-package :cl-user) :type package)
   (loaded-systems nil :type list)
-  (definitions nil :type list))
+  (definitions nil :type list)
+  (last-error nil :type (or null list)))
 
 (defun make-session (&key (package (find-package :cl-user)))
   "Create a new session with optional package context.
