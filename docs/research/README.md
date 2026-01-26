@@ -12,6 +12,7 @@ Comparative study of Common Lisp MCP server implementations to inform the future
 | [03-recommendations.md](03-recommendations.md) | Recommended direction with cost-benefit analysis |
 | [04-sly-lessons-for-mcp.md](04-sly-lessons-for-mcp.md) | Lessons from Sly/SLYNK for cl-mcp-server |
 | [05-implementation-roadmap.md](05-implementation-roadmap.md) | Concrete implementation plan with phases |
+| [06-design-patterns-reference.md](06-design-patterns-reference.md) | Strong patterns extracted from studied implementations |
 | [External: todo-api post-mortem](https://github.com/quasi/test-quick-api-project/blob/main/docs/software-development-practices.md) | Real-world crash analysis informing robustness priorities |
 
 ## Implementations Studied
