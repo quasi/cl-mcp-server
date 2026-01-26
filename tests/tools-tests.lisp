@@ -171,3 +171,65 @@
                   ("required" . ())
                   ("properties" . ()))))
     (is (cl-mcp-server.tools:validate-tool-args nil schema))))
+
+;;; ==========================================================================
+;;; Configure-Limits Tool Tests
+;;; ==========================================================================
+
+(test configure-limits-exists
+  "Test that configure-limits tool is registered"
+  (is (not (null (cl-mcp-server.tools:get-tool "configure-limits")))))
+
+(test configure-limits-returns-current-config
+  "Test that configure-limits returns current configuration"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "configure-limits"
+                     nil
+                     session)))
+        (is (stringp result))
+        (is (search "timeout" result))
+        (is (search "max-output" result))))))
+
+(test configure-limits-changes-timeout
+  "Test that configure-limits can change timeout"
+  (let ((session (cl-mcp-server.session:make-session))
+        (original cl-mcp-server.evaluator:*evaluation-timeout*))
+    (unwind-protect
+         (cl-mcp-server.session:with-session (session)
+           (cl-mcp-server.tools:call-tool
+            "configure-limits"
+            '(("timeout" . 60))
+            session)
+           (is (= 60 cl-mcp-server.evaluator:*evaluation-timeout*)))
+      ;; Restore original
+      (setf cl-mcp-server.evaluator:*evaluation-timeout* original))))
+
+(test configure-limits-zero-disables-timeout
+  "Test that setting timeout to 0 disables it"
+  (let ((session (cl-mcp-server.session:make-session))
+        (original cl-mcp-server.evaluator:*evaluation-timeout*))
+    (unwind-protect
+         (cl-mcp-server.session:with-session (session)
+           (cl-mcp-server.tools:call-tool
+            "configure-limits"
+            '(("timeout" . 0))
+            session)
+           (is (null cl-mcp-server.evaluator:*evaluation-timeout*)))
+      ;; Restore original
+      (setf cl-mcp-server.evaluator:*evaluation-timeout* original))))
+
+(test configure-limits-changes-max-output
+  "Test that configure-limits can change max-output"
+  (let ((session (cl-mcp-server.session:make-session))
+        (original cl-mcp-server.evaluator:*max-output-chars*))
+    (unwind-protect
+         (cl-mcp-server.session:with-session (session)
+           (cl-mcp-server.tools:call-tool
+            "configure-limits"
+            '(("max-output" . 50000))
+            session)
+           (is (= 50000 cl-mcp-server.evaluator:*max-output-chars*)))
+      ;; Restore original
+      (setf cl-mcp-server.evaluator:*max-output-chars* original))))

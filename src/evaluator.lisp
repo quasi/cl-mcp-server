@@ -1,7 +1,18 @@
 ;;; src/evaluator.lisp
-;;; ABOUTME: Common Lisp code evaluation with output capture
+;;; ABOUTME: Common Lisp code evaluation with output capture and timeout protection
 
 (in-package #:cl-mcp-server.evaluator)
+
+;;; ==========================================================================
+;;; Timeout Configuration
+;;; ==========================================================================
+
+(defparameter *evaluation-timeout* 30
+  "Default timeout for code evaluation in seconds.
+Set to NIL to disable timeout (not recommended for untrusted code).")
+
+(defparameter *max-output-chars* 100000
+  "Maximum characters to capture from stdout/stderr before truncation.")
 
 ;;; ==========================================================================
 ;;; Evaluation Result Structure
@@ -125,8 +136,45 @@ Returns multiple values from the last form."
             else
               return (multiple-value-list (eval form)))))
 
-(defun evaluate-code (code-string)
-  "Evaluate Common Lisp code from CODE-STRING.
+(defun capture-backtrace ()
+  "Capture current backtrace as a string for timeout reporting."
+  (with-output-to-string (s)
+    (trivial-backtrace:print-backtrace-to-stream s)))
+
+(defun %evaluate-with-timeout (thunk timeout)
+  "Execute THUNK with TIMEOUT seconds limit.
+Signals EVALUATION-TIMEOUT if the limit is exceeded.
+Provides restarts: ABORT (return nil), USE-VALUE (return specified value)."
+  (if (null timeout)
+      ;; No timeout - just run directly
+      (funcall thunk)
+      ;; With timeout - use bordeaux-threads
+      (let ((result-values nil)
+            (error-occurred nil)
+            (completed nil))
+        (bt:with-timeout (timeout)
+          (handler-case
+              (progn
+                (setf result-values (multiple-value-list (funcall thunk)))
+                (setf completed t))
+            (bt:timeout ()
+              (setf error-occurred t)
+              (restart-case
+                  (error 'evaluation-timeout
+                         :timeout-seconds timeout
+                         :backtrace (capture-backtrace)
+                         :message (format nil "Evaluation exceeded ~A second~:P" timeout))
+                (abort ()
+                  :report "Abort evaluation and return nil"
+                  (setf result-values (list nil)))
+                (use-value (value)
+                  :report "Return a specified value instead"
+                  :interactive (lambda () (list (read)))
+                  (setf result-values (list value)))))))
+        (values-list result-values))))
+
+(defun evaluate-code (code-string &key (timeout *evaluation-timeout*))
+  "Evaluate Common Lisp code from CODE-STRING with timeout protection.
 Returns an EVALUATION-RESULT containing:
 - Success status
 - Return values (as formatted strings)
@@ -135,6 +183,9 @@ Returns an EVALUATION-RESULT containing:
 - Any warnings encountered
 - Error information (if evaluation failed)
 - Definitions made during evaluation
+
+TIMEOUT specifies maximum seconds for evaluation (default: *evaluation-timeout*).
+Set to NIL to disable timeout.
 
 All forms in CODE-STRING are read and evaluated in sequence.
 Only the values from the last form are returned."
@@ -156,8 +207,14 @@ Only the values from the last form are returned."
             (let ((forms (read-all-forms code-string)))
               ;; Extract definitions before evaluation
               (setf definitions (extract-definitions forms))
-              (setf result-values (evaluate-forms forms))
+              (setf result-values
+                    (%evaluate-with-timeout
+                     (lambda () (evaluate-forms forms))
+                     timeout))
               (setf success-p t)))
+        (evaluation-timeout (c)
+          (setf error-info (format-timeout-error c))
+          (setf success-p nil))
         (error (c)
           (setf error-info (format-error c))
           (setf success-p nil))))
@@ -169,6 +226,16 @@ Only the values from the last form are returned."
      :warnings (nreverse warnings-list)
      :error-info error-info
      :definitions (when success-p definitions))))
+
+(defun format-timeout-error (condition)
+  "Format an EVALUATION-TIMEOUT condition for MCP output."
+  (format nil "[TIMEOUT] Evaluation exceeded ~A second~:P~%~
+               ~%Hint: The code may contain an infinite loop or expensive computation.~
+               ~%Consider breaking into smaller operations or using configure-limits ~
+               to increase timeout.~
+               ~@[~%~%Backtrace at timeout:~%~A~]"
+          (timeout-seconds condition)
+          (timeout-backtrace condition)))
 
 ;;; ==========================================================================
 ;;; Result Formatting for MCP

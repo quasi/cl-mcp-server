@@ -5,7 +5,7 @@ canon_meta:
 
 tracking:
   last_check: 2026-01-22T08:45:26Z
-  last_modified: 2026-01-22T08:47:19Z
+  last_modified: 2026-01-26T19:30:00Z
 
 changelog:
   - date: 2026-01-22
@@ -46,6 +46,28 @@ changelog:
       - "Documented structure (essential, per_contract, reference, token_estimate)"
       - "Provided usage examples for agents"
       - "Clarified when to use context manifests"
+
+  - date: 2026-01-26
+    action: implement
+    type: feature
+    artifact: features/code-evaluator
+    summary: "Phase 0 (Robustness): Evaluation timeout protection"
+    details:
+      - "Added evaluation-timeout condition to conditions.lisp"
+      - "Implemented bt:with-timeout wrapper in evaluator.lisp"
+      - "Added *evaluation-timeout* (30s default) and *max-output-chars* parameters"
+      - "Created configure-limits MCP tool for runtime limit adjustment"
+      - "Updated vocabulary.md with timeout terminology"
+      - "Added configure-limits-tool.md contract"
+      - "Added timeout-handling.md scenario"
+      - "Added 20 new tests (all passing)"
+    implementation_files:
+      - src/conditions.lisp
+      - src/packages.lisp
+      - src/evaluator.lisp
+      - src/tools.lisp
+      - tests/evaluator-tests.lisp
+      - tests/tools-tests.lisp
 
 checkpoints: []
 

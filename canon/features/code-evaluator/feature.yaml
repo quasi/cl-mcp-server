@@ -1,12 +1,16 @@
 feature:
   name: code-evaluator
-  version: 0.1.0
+  version: 0.2.0
   status: draft
   description: |
     Evaluates Common Lisp expressions in a controlled environment.
     Captures return values (including multiple values), stdout, stderr.
     Handles conditions gracefully using handler-bind/handler-case.
     Supports reading multiple forms from a single code string.
+
+    Phase 0 (Robustness): Provides timeout protection to prevent server
+    hangs from infinite loops or expensive computations. Configurable
+    limits allow adjusting timeout and output capture settings.
 
 depends_on:
   core: true
@@ -15,13 +19,16 @@ depends_on:
     - error-handling
 
 contracts:
-  - evaluate-lisp-tool  # Main evaluation tool contract
+  - evaluate-lisp-tool    # Main evaluation tool contract
+  - configure-limits-tool # Safety limits configuration
 
 properties:
   - evaluation-isolation
   - output-capture
+  - timeout-protection    # Phase 0: Evaluation timeout with backtrace
 
 scenarios:
   - basic-evaluation    # Arithmetic, strings, lists, multiple values
   - output-capture      # stdout, stderr, warnings
   - definitions         # defun, defvar, defmacro, defclass
+  - timeout-handling    # Phase 0: Timeout triggers and recovery

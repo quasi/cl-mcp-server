@@ -114,7 +114,32 @@ Returns a list of alists with name, description, and inputSchema."
              (push system-name (session-loaded-systems session))
              (format nil "System ~a loaded successfully." system-name))
          (error (c)
-           (format nil "Error loading system ~a: ~a" system-name c)))))))
+           (format nil "Error loading system ~a: ~a" system-name c))))))
+
+  ;; configure-limits: Configure evaluation safety limits
+  (register-tool
+   "configure-limits"
+   "Configure evaluation safety limits. Returns current configuration after any changes."
+   '(("type" . "object")
+     ("properties" . (("timeout" . (("type" . "integer")
+                                    ("description" . "Evaluation timeout in seconds (default: 30). Set to 0 to disable (not recommended).")))
+                      ("max-output" . (("type" . "integer")
+                                       ("description" . "Maximum output characters to capture (default: 100000)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((timeout (cdr (assoc "timeout" args :test #'string=)))
+           (max-output (cdr (assoc "max-output" args :test #'string=))))
+       ;; Apply changes if provided
+       (when timeout
+         (setf cl-mcp-server.evaluator:*evaluation-timeout*
+               (if (zerop timeout) nil timeout)))
+       (when max-output
+         (setf cl-mcp-server.evaluator:*max-output-chars* max-output))
+       ;; Return current configuration
+       (format nil "Current limits:~%  timeout: ~A seconds~A~%  max-output: ~A characters"
+               (or cl-mcp-server.evaluator:*evaluation-timeout* "disabled")
+               (if cl-mcp-server.evaluator:*evaluation-timeout* "" " (WARNING: no timeout)")
+               cl-mcp-server.evaluator:*max-output-chars*)))))
 
 ;;; ==========================================================================
 ;;; Tool Argument Validation

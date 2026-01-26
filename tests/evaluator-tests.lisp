@@ -356,3 +356,59 @@
   (let* ((result (cl-mcp-server.evaluator:evaluate-code "(values)"))
          (formatted (cl-mcp-server.evaluator:format-result result)))
     (is (search "; No values" formatted))))
+
+;;; ==========================================================================
+;;; Task 7: Timeout Tests
+;;; ==========================================================================
+
+(def-suite timeout-tests
+  :description "Tests for evaluation timeout protection"
+  :in evaluator-tests)
+
+(in-suite timeout-tests)
+
+(test default-timeout-value
+  "Test that default timeout is 30 seconds"
+  (is (= 30 cl-mcp-server.evaluator:*evaluation-timeout*)))
+
+(test default-max-output-value
+  "Test that default max output is 100000 characters"
+  (is (= 100000 cl-mcp-server.evaluator:*max-output-chars*)))
+
+(test fast-code-succeeds-with-timeout
+  "Test that fast code completes within timeout"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)" :timeout 1)))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal '("3") (cl-mcp-server.evaluator:result-values result)))))
+
+(test slow-code-times-out
+  "Test that slow code triggers timeout"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(sleep 3)" :timeout 1)))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (search "TIMEOUT" (cl-mcp-server.evaluator:result-error result)))))
+
+(test timeout-error-contains-hint
+  "Test that timeout error includes helpful hint"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(sleep 2)" :timeout 1)))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (search "configure-limits" (cl-mcp-server.evaluator:result-error result)))))
+
+(test nil-timeout-disables-limit
+  "Test that NIL timeout disables the limit"
+  ;; Short sleep should complete fine with no timeout
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(sleep 0.1)" :timeout nil)))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))))
+
+(test timeout-preserves-output
+  "Test that output before timeout is captured"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(princ \"before sleep\") (sleep 2)" :timeout 1)))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal "before sleep" (cl-mcp-server.evaluator:result-stdout result)))))
+
+(test timeout-preserves-warnings
+  "Test that warnings before timeout are captured"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(warn \"before timeout\") (sleep 2)" :timeout 1)))
+    (is-false (cl-mcp-server.evaluator:result-success-p result))
+    (is (= 1 (length (cl-mcp-server.evaluator:result-warnings result))))))

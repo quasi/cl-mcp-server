@@ -13,10 +13,13 @@
    #:method-not-found
    #:invalid-params
    #:internal-error
+   #:evaluation-timeout
    ;; Condition accessors
    #:error-code
    #:error-message
-   #:error-data))
+   #:error-data
+   #:timeout-seconds
+   #:timeout-backtrace))
 
 (defpackage #:cl-mcp-server.error-format
   (:use #:cl)
@@ -82,7 +85,9 @@
 (defpackage #:cl-mcp-server.evaluator
   (:use #:cl
         #:cl-mcp-server.session
-        #:cl-mcp-server.error-format)
+        #:cl-mcp-server.error-format
+        #:cl-mcp-server.conditions)
+  (:shadowing-import-from #:cl-mcp-server.conditions #:parse-error)
   (:export
    #:evaluate-code
    #:evaluation-result
@@ -94,7 +99,10 @@
    #:result-error
    #:result-success-p
    #:result-definitions
-   #:format-result))
+   #:format-result
+   ;; Timeout configuration
+   #:*evaluation-timeout*
+   #:*max-output-chars*))
 
 (defpackage #:cl-mcp-server.tools
   (:use #:cl

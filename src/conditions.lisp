@@ -45,3 +45,21 @@
   (:report (lambda (c s)
              (format s "Internal error: ~a" (error-message c))))
   (:documentation "Internal JSON-RPC error"))
+
+;;; Evaluation conditions
+
+(define-condition evaluation-timeout (mcp-error)
+  ((timeout-seconds
+    :initarg :timeout-seconds
+    :reader timeout-seconds
+    :documentation "The timeout duration that was exceeded")
+   (backtrace
+    :initarg :backtrace
+    :reader timeout-backtrace
+    :initform nil
+    :documentation "Stack trace captured at timeout"))
+  (:report (lambda (c s)
+             (format s "Evaluation exceeded ~A second timeout~@[~%~%Backtrace:~%~A~]"
+                     (timeout-seconds c)
+                     (timeout-backtrace c))))
+  (:documentation "Signaled when code evaluation exceeds the configured timeout"))
