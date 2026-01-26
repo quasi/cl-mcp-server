@@ -55,17 +55,23 @@ Returns a list of alists with name, description, and inputSchema."
 (defun define-builtin-tools ()
   "Define the built-in MCP tools."
 
-  ;; evaluate-lisp: Evaluate Common Lisp code
+  ;; evaluate-lisp: Evaluate Common Lisp code with enhanced feedback
   (register-tool
    "evaluate-lisp"
    "Evaluate Common Lisp code in the current session. The code is evaluated in sequence and the result of the last form is returned. Output to *standard-output* is captured."
    '(("type" . "object")
      ("required" . ("code"))
      ("properties" . (("code" . (("type" . "string")
-                                 ("description" . "Common Lisp code to evaluate"))))))
+                                 ("description" . "Common Lisp code to evaluate")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package context for evaluation (default: CL-USER)")))
+                      ("capture-time" . (("type" . "boolean")
+                                         ("description" . "Include timing information in result"))))))
    (lambda (args session)
      (let* ((code (cdr (assoc "code" args :test #'string=)))
-            (result (evaluate-code code)))
+            (pkg (cdr (assoc "package" args :test #'string=)))
+            (capture-time (cdr (assoc "capture-time" args :test #'string=)))
+            (result (evaluate-code code :package pkg :capture-time capture-time)))
        ;; Track definitions in the session
        (when (and session (result-definitions result))
          (setf (session-definitions session)
@@ -274,7 +280,59 @@ Returns a list of alists with name, description, and inputSchema."
                (let ((result (introspect-macroexpand form-str :full full :package pkg)))
                  (format-macroexpand-result result))
              (error (e)
-               (format nil "Error expanding form: ~A" e))))))))
+               (format nil "Error expanding form: ~A" e)))))))
+
+  ;; validate-syntax: Validate code syntax without evaluation
+  (register-tool
+   "validate-syntax"
+   "Check if Common Lisp code is syntactically valid without evaluating it. Detects unbalanced parentheses, reader errors, and other syntax issues. Use this to verify code before saving or executing."
+   '(("type" . "object")
+     ("required" . ("code"))
+     ("properties" . (("code" . (("type" . "string")
+                                 ("description" . "Common Lisp code to validate"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((code (cdr (assoc "code" args :test #'string=)))
+            (result (introspect-validate-syntax code)))
+       (format-validate-result result))))
+
+  ;; ========================================================================
+  ;; Phase B: Enhanced Evaluation Tools
+  ;; ========================================================================
+
+  ;; compile-form: Compile code without evaluating it
+  (register-tool
+   "compile-form"
+   "Compile Common Lisp code without executing it. Catches compilation warnings, type errors, and other issues that only appear at compile time. Useful for checking code correctness before evaluation."
+   '(("type" . "object")
+     ("required" . ("code"))
+     ("properties" . (("code" . (("type" . "string")
+                                 ("description" . "Common Lisp code to compile")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package context for compilation (default: CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((code (cdr (assoc "code" args :test #'string=)))
+            (pkg-name (cdr (assoc "package" args :test #'string=)))
+            (result (introspect-compile-form code :package (or pkg-name "CL-USER"))))
+       (format-compile-result result))))
+
+  ;; time-execution: Execute code with detailed timing
+  (register-tool
+   "time-execution"
+   "Execute code with detailed timing and memory allocation information. Returns real time, run time, GC time, and bytes allocated. Useful for profiling and performance analysis."
+   '(("type" . "object")
+     ("required" . ("code"))
+     ("properties" . (("code" . (("type" . "string")
+                                 ("description" . "Common Lisp code to execute and time")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package context for execution (default: CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((code (cdr (assoc "code" args :test #'string=)))
+            (pkg-name (cdr (assoc "package" args :test #'string=)))
+            (result (evaluate-code code :package pkg-name :capture-time t)))
+       (format-timing-result result)))))
 
 ;;; ==========================================================================
 ;;; Tool Argument Validation

@@ -263,3 +263,91 @@
                  '(("form" . "(defun"))  ; incomplete form
                  nil)))
     (is (search "Error" result))))
+
+;;; ==========================================================================
+;;; validate-syntax Tests
+;;; ==========================================================================
+
+(test introspect-validate-syntax-valid
+  "introspect-validate-syntax returns valid for correct code"
+  (let ((result (cl-mcp-server.introspection:introspect-validate-syntax
+                 "(defun foo (x) (+ x 1))")))
+    (is (getf result :valid))
+    (is (= 1 (getf result :forms)))))
+
+(test introspect-validate-syntax-multiple-forms
+  "introspect-validate-syntax counts multiple forms"
+  (let ((result (cl-mcp-server.introspection:introspect-validate-syntax
+                 "(defun a () 1) (defun b () 2) (defun c () 3)")))
+    (is (getf result :valid))
+    (is (= 3 (getf result :forms)))))
+
+(test introspect-validate-syntax-empty
+  "introspect-validate-syntax handles empty input"
+  (let ((result (cl-mcp-server.introspection:introspect-validate-syntax "")))
+    (is (getf result :valid))
+    (is (= 0 (getf result :forms)))))
+
+(test introspect-validate-syntax-missing-close
+  "introspect-validate-syntax detects missing close paren"
+  (let ((result (cl-mcp-server.introspection:introspect-validate-syntax
+                 "(defun foo (x) (+ x 1)")))
+    (is (not (getf result :valid)))
+    (is (getf result :error))
+    (is (getf result :unclosed-count))))
+
+(test introspect-validate-syntax-extra-close
+  "introspect-validate-syntax detects extra close paren"
+  (let ((result (cl-mcp-server.introspection:introspect-validate-syntax
+                 "(defun foo (x) (+ x 1)))")))
+    (is (not (getf result :valid)))
+    (is (getf result :error))))
+
+(test introspect-validate-syntax-nested-valid
+  "introspect-validate-syntax handles deep nesting"
+  (let ((result (cl-mcp-server.introspection:introspect-validate-syntax
+                 "(a (b (c (d (e (f 1))))))")))
+    (is (getf result :valid))))
+
+(test introspect-validate-syntax-string-parens
+  "introspect-validate-syntax ignores parens in strings"
+  (let ((result (cl-mcp-server.introspection:introspect-validate-syntax
+                 "(defun foo () \"has ( and ) in it\")")))
+    (is (getf result :valid))))
+
+(test format-validate-result-valid
+  "format-validate-result shows checkmark for valid code"
+  (let* ((result (cl-mcp-server.introspection:introspect-validate-syntax
+                  "(+ 1 2)"))
+         (formatted (cl-mcp-server.introspection:format-validate-result result)))
+    (is (search "valid" formatted :test #'char-equal))))
+
+(test format-validate-result-invalid
+  "format-validate-result shows error for invalid code"
+  (let* ((result (cl-mcp-server.introspection:introspect-validate-syntax
+                  "(+ 1 2"))
+         (formatted (cl-mcp-server.introspection:format-validate-result result)))
+    (is (search "invalid" formatted :test #'char-equal))
+    (is (search "Error" formatted))))
+
+(test validate-syntax-tool-registered
+  "validate-syntax tool is registered"
+  (is (not (null (cl-mcp-server.tools:get-tool "validate-syntax")))))
+
+(test call-validate-syntax-tool-valid
+  "calling validate-syntax tool with valid code"
+  (let ((result (cl-mcp-server.tools:call-tool
+                 "validate-syntax"
+                 '(("code" . "(defun foo () 1)"))
+                 nil)))
+    (is (stringp result))
+    (is (search "valid" result :test #'char-equal))))
+
+(test call-validate-syntax-tool-invalid
+  "calling validate-syntax tool with invalid code"
+  (let ((result (cl-mcp-server.tools:call-tool
+                 "validate-syntax"
+                 '(("code" . "(defun foo () 1"))
+                 nil)))
+    (is (stringp result))
+    (is (search "invalid" result :test #'char-equal))))

@@ -24,6 +24,7 @@ cross-reference databases.
 | [who-calls-tool](contracts/who-calls-tool.md) | who-calls | Find function callers |
 | [who-references-tool](contracts/who-references-tool.md) | who-references | Find variable readers |
 | [macroexpand-form-tool](contracts/macroexpand-form-tool.md) | macroexpand-form | Macro expansion |
+| [validate-syntax-tool](contracts/validate-syntax-tool.md) | validate-syntax | Syntax validation without evaluation |
 
 ## Scenarios
 
@@ -33,6 +34,7 @@ cross-reference databases.
 | [symbol-discovery](scenarios/symbol-discovery.md) | Finding symbols by pattern |
 | [cross-reference](scenarios/cross-reference.md) | Navigating code relationships |
 | [macro-understanding](scenarios/macro-understanding.md) | Understanding macro transformations |
+| [syntax-validation](scenarios/syntax-validation.md) | Validating code syntax before saving |
 
 ## Vocabulary
 

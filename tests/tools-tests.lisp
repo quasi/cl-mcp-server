@@ -233,3 +233,137 @@
            (is (= 50000 cl-mcp-server.evaluator:*max-output-chars*)))
       ;; Restore original
       (setf cl-mcp-server.evaluator:*max-output-chars* original))))
+
+;;; ==========================================================================
+;;; Phase B: Enhanced Evaluation Tool Tests
+;;; ==========================================================================
+
+(test evaluate-lisp-with-package-param
+  "Test evaluate-lisp tool with package parameter"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "evaluate-lisp"
+                     '(("code" . "*package*")
+                       ("package" . "CL"))
+                     session)))
+        (is (stringp result))
+        (is (search "COMMON-LISP" result))))))
+
+(test evaluate-lisp-with-timing-param
+  "Test evaluate-lisp tool with capture-time parameter"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "evaluate-lisp"
+                     '(("code" . "(loop for i from 1 to 1000 sum i)")
+                       ("capture-time" . t))
+                     session)))
+        (is (stringp result))
+        (is (search "Timing" result))
+        (is (search "ms" result))))))
+
+;;; ==========================================================================
+;;; Phase B: compile-form Tool Tests
+;;; ==========================================================================
+
+(test compile-form-tool-exists
+  "Test that compile-form tool is registered"
+  (is (not (null (cl-mcp-server.tools:get-tool "compile-form")))))
+
+(test compile-form-schema
+  "Test compile-form tool has correct schema"
+  (let* ((tool (cl-mcp-server.tools:get-tool "compile-form"))
+         (schema (cl-mcp-server.tools:tool-input-schema tool)))
+    (is (string= "object" (cdr (assoc "type" schema :test #'string=))))
+    (let ((required (cdr (assoc "required" schema :test #'string=))))
+      (is (member "code" required :test #'string=)))))
+
+(test compile-form-valid-code
+  "Test compile-form with valid code"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "compile-form"
+                     '(("code" . "(+ 1 2 3)"))
+                     session)))
+        (is (stringp result))
+        (is (search "successful" result))))))
+
+(test compile-form-catches-type-error
+  "Test compile-form catches type errors"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "compile-form"
+                     '(("code" . "(+ 1 \"not a number\")"))
+                     session)))
+        (is (stringp result))
+        (is (search "Warning" result))))))
+
+(test compile-form-with-package
+  "Test compile-form with package parameter"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "compile-form"
+                     '(("code" . "(list 'test)")
+                       ("package" . "CL-USER"))
+                     session)))
+        (is (stringp result))
+        (is (search "successful" result))))))
+
+;;; ==========================================================================
+;;; Phase B: time-execution Tool Tests
+;;; ==========================================================================
+
+(test time-execution-tool-exists
+  "Test that time-execution tool is registered"
+  (is (not (null (cl-mcp-server.tools:get-tool "time-execution")))))
+
+(test time-execution-schema
+  "Test time-execution tool has correct schema"
+  (let* ((tool (cl-mcp-server.tools:get-tool "time-execution"))
+         (schema (cl-mcp-server.tools:tool-input-schema tool)))
+    (is (string= "object" (cdr (assoc "type" schema :test #'string=))))
+    (let ((required (cdr (assoc "required" schema :test #'string=))))
+      (is (member "code" required :test #'string=)))))
+
+(test time-execution-returns-timing
+  "Test time-execution returns timing information"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "time-execution"
+                     '(("code" . "(loop for i from 1 to 10000 sum i)"))
+                     session)))
+        (is (stringp result))
+        (is (search "Timing:" result))
+        (is (search "Real time:" result))
+        (is (search "Run time:" result))
+        (is (search "GC time:" result))
+        (is (search "Bytes consed:" result))
+        (is (search "Result:" result))))))
+
+(test time-execution-with-package
+  "Test time-execution with package parameter"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "time-execution"
+                     '(("code" . "*package*")
+                       ("package" . "CL"))
+                     session)))
+        (is (stringp result))
+        (is (search "COMMON-LISP" result))))))
+
+(test time-execution-shows-result
+  "Test time-execution includes the computed result"
+  (let ((session (cl-mcp-server.session:make-session)))
+    (cl-mcp-server.session:with-session (session)
+      (let ((result (cl-mcp-server.tools:call-tool
+                     "time-execution"
+                     '(("code" . "(+ 100 200 300)"))
+                     session)))
+        (is (stringp result))
+        (is (search "600" result))))))

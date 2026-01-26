@@ -99,7 +99,10 @@
    #:result-error
    #:result-success-p
    #:result-definitions
+   #:result-timing
+   #:result-package
    #:format-result
+   #:format-timing-result
    ;; Timeout configuration
    #:*evaluation-timeout*
    #:*max-output-chars*))
@@ -124,6 +127,12 @@
    ;; A.4: macroexpand-form
    #:introspect-macroexpand
    #:format-macroexpand-result
+   ;; A.5: validate-syntax
+   #:introspect-validate-syntax
+   #:format-validate-result
+   ;; B.2: compile-form
+   #:introspect-compile-form
+   #:format-compile-result
    ;; Helper
    #:resolve-symbol))
 

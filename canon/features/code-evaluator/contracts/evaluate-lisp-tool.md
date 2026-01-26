@@ -25,6 +25,10 @@ The primary tool for executing Common Lisp code.
       "package": {
         "type": "string",
         "description": "Package context for evaluation. Defaults to CL-USER or the last-used package."
+      },
+      "capture-time": {
+        "type": "boolean",
+        "description": "If true, include timing information (real time, run time, GC time, bytes consed) in the result."
       }
     }
   }
@@ -44,8 +48,15 @@ The `code` parameter is read using the Lisp reader:
 
 The `package` parameter:
 1. If provided, `*package*` is bound to that package during evaluation
-2. If omitted, uses the session's current package
-3. Invalid package names result in an error
+2. If omitted, uses the session's current package (defaults to CL-USER)
+3. Invalid package names signal an error
+
+### Timing Capture (Phase B)
+
+The `capture-time` parameter:
+1. If true, captures execution timing information
+2. If false or omitted, no timing is captured
+3. Timing includes: real time, run time, GC time, bytes consed
 
 ## Output Format
 
@@ -88,6 +99,13 @@ Sections are omitted if empty:
 - No `[stderr]` section if no error output
 - No `[warnings]` section if no warnings signaled
 - Multiple `=>` lines only for multiple values
+- Timing section only if `capture-time` was true
+
+### Timing Output (when capture-time is true)
+
+```
+; Timing: {N}ms real, {N}ms run, {N}ms GC, {N} bytes consed
+```
 
 ### Value Printing
 

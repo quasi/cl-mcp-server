@@ -412,3 +412,135 @@
                  "(warn \"before timeout\") (sleep 2)" :timeout 1)))
     (is-false (cl-mcp-server.evaluator:result-success-p result))
     (is (= 1 (length (cl-mcp-server.evaluator:result-warnings result))))))
+
+;;; ==========================================================================
+;;; Phase B: Enhanced Evaluation Tests
+;;; ==========================================================================
+
+(def-suite phase-b-tests
+  :description "Tests for Phase B enhanced evaluation features"
+  :in evaluator-tests)
+
+(in-suite phase-b-tests)
+
+;;; B.1: Package-Aware Evaluation Tests
+
+(test evaluate-in-default-package
+  "Test that default package is CL-USER"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "*package*")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (search "COMMON-LISP-USER" (first (cl-mcp-server.evaluator:result-values result))))))
+
+(test evaluate-in-specified-package
+  "Test evaluating code in a specified package"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "*package*"
+                 :package "CL-MCP-SERVER")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (search "CL-MCP-SERVER" (first (cl-mcp-server.evaluator:result-values result))))))
+
+(test evaluate-package-not-found
+  "Test error when package doesn't exist"
+  (signals error
+    (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)" :package "NONEXISTENT-PKG")))
+
+(test result-contains-package-name
+  "Test that result includes package name"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)" :package "CL")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (equal "COMMON-LISP" (cl-mcp-server.evaluator:result-package result)))))
+
+;;; B.1: Timing Tests
+
+(test evaluate-with-timing
+  "Test that timing information is captured when requested"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(loop for i from 1 to 1000 sum i)"
+                 :capture-time t)))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (not (null (cl-mcp-server.evaluator:result-timing result))))
+    (let ((timing (cl-mcp-server.evaluator:result-timing result)))
+      (is (integerp (getf timing :real-ms)))
+      (is (integerp (getf timing :run-ms)))
+      (is (integerp (getf timing :gc-ms)))
+      (is (integerp (getf timing :bytes-consed))))))
+
+(test evaluate-without-timing
+  "Test that timing is nil when not requested"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)")))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (null (cl-mcp-server.evaluator:result-timing result)))))
+
+(test timing-bytes-consed-positive
+  "Test that bytes-consed is non-negative"
+  (let ((result (cl-mcp-server.evaluator:evaluate-code
+                 "(make-list 1000)"
+                 :capture-time t)))
+    (is-true (cl-mcp-server.evaluator:result-success-p result))
+    (is (>= (getf (cl-mcp-server.evaluator:result-timing result) :bytes-consed) 0))))
+
+(test format-result-includes-timing
+  "Test that formatted result includes timing when present"
+  (let* ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)" :capture-time t))
+         (formatted (cl-mcp-server.evaluator:format-result result)))
+    (is (search "Timing" formatted))
+    (is (search "ms" formatted))
+    (is (search "bytes" formatted))))
+
+;;; B.2: Compilation Tests (introspection module)
+
+(test compile-valid-code
+  "Test compiling valid code succeeds"
+  (let ((result (cl-mcp-server.introspection:introspect-compile-form "(+ 1 2)")))
+    (is-true (getf result :compiled-p))
+    (is (null (getf result :errors)))))
+
+(test compile-type-error
+  "Test that type errors are caught during compilation"
+  (let ((result (cl-mcp-server.introspection:introspect-compile-form "(+ 1 \"string\")")))
+    (is-true (getf result :compiled-p))  ; SBCL still compiles, with warnings
+    (is (not (null (getf result :warnings))))))
+
+(test compile-syntax-error
+  "Test that syntax errors are caught"
+  (let ((result (cl-mcp-server.introspection:introspect-compile-form "(+ 1 2")))
+    (is-false (getf result :compiled-p))
+    (is (not (null (getf result :errors))))))
+
+(test compile-in-package
+  "Test compiling in a specified package"
+  (let ((result (cl-mcp-server.introspection:introspect-compile-form
+                 "(list 'test)"
+                 :package "CL-USER")))
+    (is-true (getf result :compiled-p))))
+
+(test format-compile-success
+  "Test formatting successful compilation result"
+  (let* ((result (cl-mcp-server.introspection:introspect-compile-form "(+ 1 2)"))
+         (formatted (cl-mcp-server.introspection:format-compile-result result)))
+    (is (search "successful" formatted))))
+
+(test format-compile-with-warnings
+  "Test formatting compilation result with warnings"
+  (let* ((result (cl-mcp-server.introspection:introspect-compile-form "(+ 1 \"bad\")"))
+         (formatted (cl-mcp-server.introspection:format-compile-result result)))
+    (is (search "Warning" formatted))))
+
+;;; B.3: Timing Result Formatting Tests
+
+(test format-timing-result-success
+  "Test formatting timing result for successful execution"
+  (let* ((result (cl-mcp-server.evaluator:evaluate-code "(+ 1 2)" :capture-time t))
+         (formatted (cl-mcp-server.evaluator:format-timing-result result)))
+    (is (search "Timing:" formatted))
+    (is (search "Real time:" formatted))
+    (is (search "Run time:" formatted))
+    (is (search "GC time:" formatted))
+    (is (search "Bytes consed:" formatted))
+    (is (search "Result:" formatted))))
+
+(test format-timing-result-error
+  "Test formatting timing result for error"
+  (let* ((result (cl-mcp-server.evaluator:evaluate-code "(error \"oops\")" :capture-time t))
+         (formatted (cl-mcp-server.evaluator:format-timing-result result)))
+    (is (search "Error" formatted))))

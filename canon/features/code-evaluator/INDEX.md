@@ -17,11 +17,14 @@
 
 ## Contents
 
-### Contracts (1)
+### Contracts (4)
 
-| File | Purpose | Lines | Key Points |
+| File | Purpose | Phase | Key Points |
 |------|---------|-------|------------|
-| `contracts/evaluate-lisp-tool.md` | Primary evaluation tool | ~169 | Input schema, output format, stream capture, condition handling |
+| `contracts/evaluate-lisp-tool.md` | Primary evaluation tool | Core | Input schema, output format, stream capture, timing |
+| `contracts/configure-limits-tool.md` | Safety configuration | 0 | Timeout and output limits |
+| `contracts/compile-form-tool.md` | Code compilation | B | Type checking, warnings without execution |
+| `contracts/time-execution-tool.md` | Performance profiling | B | Timing, memory allocation, GC metrics |
 
 ### Scenarios (3)
 

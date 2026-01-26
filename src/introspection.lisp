@@ -7,6 +7,10 @@
 ;;; - Cross-reference queries (who-calls, who-references)
 ;;; - Macro expansion
 
+;; Ensure sb-introspect is available (SBCL-specific)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :sb-introspect))
+
 (in-package #:cl-mcp-server.introspection)
 
 ;;; ==========================================================================
@@ -266,6 +270,152 @@ Returns plist with :original, :expanded, :changed-p."
         (format s "Expanded:~%~A~%"
                 (getf result :expanded))
         (format s "(No expansion - not a macro form)~%"))))
+
+;;; ==========================================================================
+;;; B.2: compile-form - Compilation without Evaluation
+;;; ==========================================================================
+
+(defun introspect-compile-form (form-string &key (package *package*))
+  "Compile code in FORM-STRING without executing it.
+Catches compilation warnings and errors that wouldn't appear during simple evaluation.
+PACKAGE sets the read context.
+Returns plist with :compiled-p :warnings :errors :notes."
+  (let* ((pkg (etypecase package
+                (package package)
+                (string (or (find-package (string-upcase package))
+                            (error "Package ~A not found" package)))
+                (symbol (or (find-package package)
+                            (error "Package ~A not found" package)))))
+         (*package* pkg)
+         (warnings nil)
+         (errors nil)
+         (notes nil)
+         (form (handler-case
+                   (read-from-string form-string)
+                 (error (e)
+                   (return-from introspect-compile-form
+                     (list :compiled-p nil
+                           :errors (list (format nil "Read error: ~A" e))
+                           :warnings nil
+                           :notes nil))))))
+    ;; Wrap the form in a lambda so COMPILE can handle it
+    (let ((lambda-form `(lambda () ,form)))
+      (handler-bind
+          ((sb-ext:compiler-note
+             (lambda (c)
+               (push (format nil "~A" c) notes)
+               (muffle-warning c)))
+           (style-warning
+             (lambda (c)
+               (push (format nil "[STYLE] ~A" c) warnings)
+               (muffle-warning c)))
+           (warning
+             (lambda (c)
+               (push (format nil "~A" c) warnings)
+               (muffle-warning c))))
+        (handler-case
+            (multiple-value-bind (fn had-warnings had-errors)
+                (compile nil lambda-form)
+              (declare (ignore fn))
+              (list :compiled-p t
+                    :had-warnings had-warnings
+                    :had-errors had-errors
+                    :warnings (nreverse warnings)
+                    :errors (nreverse errors)
+                    :notes (nreverse notes)))
+          (error (e)
+            (list :compiled-p nil
+                  :errors (list (format nil "~A" e))
+                  :warnings (nreverse warnings)
+                  :notes (nreverse notes))))))))
+
+(defun format-compile-result (result)
+  "Format compile result as human-readable string."
+  (with-output-to-string (s)
+    (if (getf result :compiled-p)
+        (format s "Compilation successful.~%")
+        (format s "Compilation FAILED.~%"))
+    (let ((errors (getf result :errors)))
+      (when errors
+        (format s "~%Errors (~D):~%" (length errors))
+        (dolist (e errors)
+          (format s "  ~A~%" e))))
+    (let ((warnings (getf result :warnings)))
+      (when warnings
+        (format s "~%Warnings (~D):~%" (length warnings))
+        (dolist (w warnings)
+          (format s "  ~A~%" w))))
+    (let ((notes (getf result :notes)))
+      (when notes
+        (format s "~%Compiler notes (~D):~%" (length notes))
+        (dolist (n notes)
+          (format s "  ~A~%" n))))
+    (when (and (getf result :compiled-p)
+               (not (getf result :warnings))
+               (not (getf result :notes)))
+      (format s "No warnings or notes.~%"))))
+
+;;; ==========================================================================
+;;; A.5: validate-syntax - Syntax Validation Without Evaluation
+;;; ==========================================================================
+
+(defun introspect-validate-syntax (code-string)
+  "Validate that CODE-STRING is syntactically valid Lisp without evaluating it.
+Returns a plist with:
+  :valid - T if syntax is correct
+  :forms - Number of top-level forms if valid
+  :error - Error description if invalid
+  :unclosed-count - Number of unclosed parens (if applicable)
+  :line-hint - Approximate line of problem (if applicable)"
+  (handler-case
+      (with-input-from-string (stream code-string)
+        (let ((count 0))
+          (loop for form = (read stream nil :eof)
+                until (eq form :eof)
+                do (incf count))
+          (list :valid t :forms count)))
+    (end-of-file (c)
+      (declare (ignore c))
+      ;; Count unclosed parens to estimate problem
+      (let ((depth 0)
+            (line 1)
+            (in-string nil))
+        (loop for i from 0 below (length code-string)
+              for char = (char code-string i)
+              for prev = (if (> i 0) (char code-string (1- i)) #\Space)
+              do (case char
+                   (#\Newline (incf line))
+                   (#\" (unless (char= prev #\\) (setf in-string (not in-string))))
+                   (#\( (unless in-string (incf depth)))
+                   (#\) (unless in-string (decf depth)))))
+        (list :valid nil
+              :error "Unexpected end of input - unclosed parenthesis"
+              :unclosed-count depth
+              :line-hint line)))
+    (sb-int:simple-reader-error (c)
+      ;; SBCL-specific reader error with better info
+      (list :valid nil
+            :error (format nil "~A" c)))
+    (reader-error (c)
+      (list :valid nil
+            :error (format nil "Reader error: ~A" c)))
+    (error (c)
+      (list :valid nil
+            :error (format nil "~A" c)))))
+
+(defun format-validate-result (result)
+  "Format validation result as human-readable string."
+  (with-output-to-string (s)
+    (if (getf result :valid)
+        (format s "✓ Syntax valid: ~D top-level form~:P~%"
+                (getf result :forms))
+        (progn
+          (format s "✗ Syntax invalid~%~%")
+          (format s "Error: ~A~%" (getf result :error))
+          (when (getf result :unclosed-count)
+            (format s "Unclosed parentheses: ~D~%" (getf result :unclosed-count)))
+          (when (getf result :line-hint)
+            (format s "Approximate location: line ~D~%" (getf result :line-hint)))))))
 
 ;;; ==========================================================================
 ;;; Helper: Resolve Symbol from String

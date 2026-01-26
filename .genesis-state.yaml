@@ -1,6 +1,6 @@
 genesis:
   started: 2026-01-22T00:00:00Z
-  last_activity: 2026-01-26T00:00:00Z
+  last_activity: 2026-01-26T19:00:00Z
 
 core:
   vocabulary:
@@ -45,9 +45,30 @@ features:
     verification: not-started
 
   introspection:
-    phase: review
+    phase: stable
+    description: "Phase A - Introspection tools including validate-syntax"
     vocabulary: stable
     contracts: stable
     scenarios: stable
     properties: not-started
     verification: not-started
+    tools:
+      - describe-symbol
+      - apropos-search
+      - who-calls
+      - who-references
+      - macroexpand-form
+      - validate-syntax (new - syntax validation without evaluation)
+
+  enhanced-evaluation:
+    phase: stable
+    description: "Phase B - Enhanced evaluation with timing, compilation, and profiling"
+    vocabulary: stable
+    contracts: stable
+    scenarios: not-started
+    properties: not-started
+    verification: not-started
+    tools:
+      - evaluate-lisp (enhanced with package, capture-time)
+      - compile-form (new)
+      - time-execution (new)
