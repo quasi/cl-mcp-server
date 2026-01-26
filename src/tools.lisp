@@ -62,8 +62,8 @@ Returns a list of alists with name, description, and inputSchema."
   (register-tool
    "get-usage-guide"
    "Get the recommended workflow guide for using this Lisp MCP server effectively. RECOMMENDED: Call this when starting a new session to learn best practices for incremental development, syntax validation, and effective tool usage."
-   '(("type" . "object")
-     ("properties" . ()))
+   `(("type" . "object")
+     ("properties" . ,(make-hash-table :test #'equal)))
    (lambda (args session)
      (declare (ignore args session))
      (get-usage-guide-content)))
