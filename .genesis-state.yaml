@@ -1,6 +1,6 @@
 genesis:
   started: 2026-01-22T00:00:00Z
-  last_activity: 2026-01-26T21:30:00Z
+  last_activity: 2026-01-26T22:30:00Z
 
 core:
   vocabulary:
@@ -113,3 +113,17 @@ features:
       - quickload (new - load via Quicklisp with download support)
       - quicklisp-search (new - search Quicklisp for available systems)
       - load-file (new - load individual Lisp files)
+
+  profiling:
+    phase: stable
+    description: "Phase F - Performance profiling and memory analysis tools"
+    vocabulary: stable
+    contracts: stable
+    scenarios: stable
+    properties: not-started
+    verification: not-started
+    tools:
+      - profile-code (new - statistical profiling with CPU/time/alloc modes)
+      - profile-functions (new - deterministic profiling of specific functions)
+      - memory-report (new - memory usage and GC statistics)
+      - allocation-profile (new - memory allocation profiling)

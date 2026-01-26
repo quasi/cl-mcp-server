@@ -581,7 +581,132 @@ Returns a list of alists with name, description, and inputSchema."
            (format-load-file-result
             (introspect-load-file path :compile compile :package package))
          (error (e)
-           (format nil "Error loading file: ~A" e)))))))
+           (format nil "Error loading file: ~A" e))))))
+
+  ;; ========================================================================
+  ;; Phase F: Profiling Tools
+  ;; ========================================================================
+
+  ;; profile-code: Statistical profiling with sb-sprof
+  (register-tool
+   "profile-code"
+   "Profile code using statistical sampling. Runs the code while collecting stack samples to identify hot spots. Supports CPU time, wall-clock time, or allocation profiling modes."
+   '(("type" . "object")
+     ("required" . ("code"))
+     ("properties" . (("code" . (("type" . "string")
+                                 ("description" . "Common Lisp code to profile")))
+                      ("mode" . (("type" . "string")
+                                 ("description" . "Profiling mode: cpu (default), time (wall-clock), or alloc (memory)")
+                                 ("enum" . ("cpu" "time" "alloc"))))
+                      ("max-samples" . (("type" . "integer")
+                                        ("description" . "Maximum samples to collect (default: 1000)")))
+                      ("sample-interval" . (("type" . "number")
+                                            ("description" . "Seconds between samples (default: 0.01)")))
+                      ("report-type" . (("type" . "string")
+                                        ("description" . "Report format: flat (default) or graph")
+                                        ("enum" . ("flat" "graph"))))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package context for evaluation (default: CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((code (cdr (assoc "code" args :test #'string=)))
+            (mode-str (cdr (assoc "mode" args :test #'string=)))
+            (mode (if mode-str
+                      (intern (string-upcase mode-str) :keyword)
+                      :cpu))
+            (max-samples (or (cdr (assoc "max-samples" args :test #'string=)) 1000))
+            (sample-interval (or (cdr (assoc "sample-interval" args :test #'string=)) 0.01))
+            (report-type-str (cdr (assoc "report-type" args :test #'string=)))
+            (report-type (if report-type-str
+                             (intern (string-upcase report-type-str) :keyword)
+                             :flat))
+            (package (or (cdr (assoc "package" args :test #'string=)) "CL-USER")))
+       (handler-case
+           (format-profile-code-result
+            (introspect-profile-code code
+                                     :mode mode
+                                     :max-samples max-samples
+                                     :sample-interval sample-interval
+                                     :report-type report-type
+                                     :package package))
+         (error (e)
+           (format nil "Profiling error: ~A" e))))))
+
+  ;; profile-functions: Deterministic profiling of specific functions
+  (register-tool
+   "profile-functions"
+   "Manage deterministic profiling of specific functions. Tracks exact call counts and time spent. Use 'start' to begin profiling functions, 'report' to see results, 'stop' to end profiling."
+   '(("type" . "object")
+     ("required" . ("action"))
+     ("properties" . (("action" . (("type" . "string")
+                                   ("description" . "Action: start, stop, report, reset, or status")
+                                   ("enum" . ("start" "stop" "report" "reset" "status"))))
+                      ("functions" . (("type" . "array")
+                                      ("items" . (("type" . "string")))
+                                      ("description" . "Function names to profile (for 'start' action)")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package name - profile all functions in this package (for 'start' action)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((action-str (cdr (assoc "action" args :test #'string=)))
+            (action (intern (string-upcase action-str) :keyword))
+            (functions (cdr (assoc "functions" args :test #'string=)))
+            (package (cdr (assoc "package" args :test #'string=))))
+       (handler-case
+           (format-profile-functions-result
+            (introspect-profile-functions action
+                                          :functions functions
+                                          :package package))
+         (error (e)
+           (format nil "Profiling error: ~A" e))))))
+
+  ;; memory-report: Get memory usage and GC statistics
+  (register-tool
+   "memory-report"
+   "Get detailed memory usage report including heap statistics and garbage collection information. Useful for understanding memory consumption and GC behavior."
+   '(("type" . "object")
+     ("properties" . (("verbosity" . (("type" . "string")
+                                      ("description" . "Detail level: default, detailed (t), or minimal (nil)")
+                                      ("enum" . ("default" "detailed" "minimal"))))
+                      ("gc-first" . (("type" . "boolean")
+                                     ("description" . "Run garbage collection before reporting (default: false)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((verbosity-str (cdr (assoc "verbosity" args :test #'string=)))
+            (verbosity (cond ((string-equal verbosity-str "detailed") t)
+                             ((string-equal verbosity-str "minimal") nil)
+                             (t :default)))
+            (gc-first (cdr (assoc "gc-first" args :test #'string=))))
+       (handler-case
+           (format-memory-report
+            (introspect-memory-report :verbosity verbosity :gc-first gc-first))
+         (error (e)
+           (format nil "Memory report error: ~A" e))))))
+
+  ;; allocation-profile: Profile memory allocations
+  (register-tool
+   "allocation-profile"
+   "Profile memory allocation in code. Shows where memory is being allocated, helping identify allocation hot spots and potential memory optimization opportunities."
+   '(("type" . "object")
+     ("required" . ("code"))
+     ("properties" . (("code" . (("type" . "string")
+                                 ("description" . "Common Lisp code to profile for allocations")))
+                      ("max-samples" . (("type" . "integer")
+                                        ("description" . "Maximum allocation samples to collect (default: 1000)")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package context for evaluation (default: CL-USER)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let* ((code (cdr (assoc "code" args :test #'string=)))
+            (max-samples (or (cdr (assoc "max-samples" args :test #'string=)) 1000))
+            (package (or (cdr (assoc "package" args :test #'string=)) "CL-USER")))
+       (handler-case
+           (format-allocation-profile-result
+            (introspect-allocation-profile code
+                                           :max-samples max-samples
+                                           :package package))
+         (error (e)
+           (format nil "Allocation profiling error: ~A" e)))))))
 
 ;;; ==========================================================================
 ;;; Usage Guide Content
@@ -617,6 +742,10 @@ Definitions persist across calls within a session.
 | quickload | Load via Quicklisp | Loading external libraries |
 | quicklisp-search | Search Quicklisp | Finding libraries |
 | load-file | Load a Lisp file | Loading individual files |
+| profile-code | Statistical profiling | Finding performance hot spots |
+| profile-functions | Deterministic profiling | Exact timing of specific functions |
+| memory-report | Memory usage stats | Understanding memory consumption |
+| allocation-profile | Allocation profiling | Finding allocation hot spots |
 | list-definitions | Show session state | Review what's defined |
 | reset-session | Clear all state | Start fresh |
 

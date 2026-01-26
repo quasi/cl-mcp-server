@@ -178,12 +178,30 @@
    ;; Helper
    #:normalize-dependency))
 
+(defpackage #:cl-mcp-server.profiling-tools
+  (:use #:cl)
+  (:export
+   ;; F.1: profile-code (statistical profiling)
+   #:introspect-profile-code
+   #:format-profile-code-result
+   ;; F.2: profile-functions (deterministic profiling)
+   #:*profiled-functions*
+   #:introspect-profile-functions
+   #:format-profile-functions-result
+   ;; F.3: memory-report
+   #:introspect-memory-report
+   #:format-memory-report
+   ;; F.4: allocation-profile
+   #:introspect-allocation-profile
+   #:format-allocation-profile-result))
+
 (defpackage #:cl-mcp-server.tools
   (:use #:cl
         #:cl-mcp-server.evaluator
         #:cl-mcp-server.session
         #:cl-mcp-server.introspection
-        #:cl-mcp-server.asdf-tools)
+        #:cl-mcp-server.asdf-tools
+        #:cl-mcp-server.profiling-tools)
   (:export
    #:*tools*
    #:tool-definition
