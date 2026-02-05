@@ -195,13 +195,32 @@
    #:introspect-allocation-profile
    #:format-allocation-profile-result))
 
+(defpackage #:cl-mcp-server.telos-tools
+  (:use #:cl)
+  (:export
+   ;; Availability check
+   #:telos-available-p
+   ;; Introspection
+   #:introspect-list-features
+   #:introspect-feature-intent
+   #:introspect-get-intent
+   #:introspect-intent-chain
+   #:introspect-feature-members
+   ;; Formatting
+   #:format-list-features
+   #:format-feature-intent
+   #:format-get-intent
+   #:format-intent-chain
+   #:format-feature-members))
+
 (defpackage #:cl-mcp-server.tools
   (:use #:cl
         #:cl-mcp-server.evaluator
         #:cl-mcp-server.session
         #:cl-mcp-server.introspection
         #:cl-mcp-server.asdf-tools
-        #:cl-mcp-server.profiling-tools)
+        #:cl-mcp-server.profiling-tools
+        #:cl-mcp-server.telos-tools)
   (:export
    #:*tools*
    #:tool-definition

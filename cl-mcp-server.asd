@@ -23,6 +23,7 @@
                  (:file "introspection")
                  (:file "asdf-tools")
                  (:file "profiling-tools")
+                 (:file "telos-tools")
                  (:file "tools")
                  (:file "server"))))
   :in-order-to ((asdf:test-op (asdf:test-op #:cl-mcp-server/tests))))

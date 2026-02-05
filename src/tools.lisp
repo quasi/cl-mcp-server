@@ -706,7 +706,85 @@ Returns a list of alists with name, description, and inputSchema."
                                            :max-samples max-samples
                                            :package package))
          (error (e)
-           (format nil "Allocation profiling error: ~A" e)))))))
+           (format nil "Allocation profiling error: ~A" e))))))
+
+  ;; ========================================================================
+  ;; Telos Intent Introspection Tools (only when telos is loaded)
+  ;; ========================================================================
+
+  ;; telos-list-features: List all defined features
+  (register-tool
+   "telos-list-features"
+   "List all telos features defined in loaded systems. Features organize code by purpose and provide queryable intent. Returns nothing if telos is not loaded."
+   `(("type" . "object")
+     ("properties" . (("filter" . (("type" . "string")
+                                   ("description" . "Optional substring to filter feature names"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((filter (cdr (assoc "filter" args :test #'string=))))
+       (format-list-features (introspect-list-features filter)))))
+
+  ;; telos-feature-intent: Get full intent for a feature
+  (register-tool
+   "telos-feature-intent"
+   "Get the full intent definition for a telos feature, including purpose, goals, constraints, assumptions, and failure modes."
+   '(("type" . "object")
+     ("required" . ("feature"))
+     ("properties" . (("feature" . (("type" . "string")
+                                    ("description" . "Feature name (e.g., 'rrd-memory-backend')"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((feature-name (cdr (assoc "feature" args :test #'string=))))
+       (format-feature-intent
+        (introspect-feature-intent feature-name)
+        feature-name))))
+
+  ;; telos-get-intent: Get intent for any symbol
+  (register-tool
+   "telos-get-intent"
+   "Get the intent attached to a function, class, or condition. Shows purpose, role, assumptions, and failure modes."
+   '(("type" . "object")
+     ("required" . ("name"))
+     ("properties" . (("name" . (("type" . "string")
+                                 ("description" . "Symbol name to query")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package name (default: current package)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((name (cdr (assoc "name" args :test #'string=)))
+           (package (cdr (assoc "package" args :test #'string=))))
+       (format-get-intent (introspect-get-intent name package)))))
+
+  ;; telos-intent-chain: Trace intent from symbol to root feature
+  (register-tool
+   "telos-intent-chain"
+   "Trace the intent hierarchy from a function or class up to its root feature. Shows how code fits into the larger design."
+   '(("type" . "object")
+     ("required" . ("name"))
+     ("properties" . (("name" . (("type" . "string")
+                                 ("description" . "Symbol name to trace")))
+                      ("package" . (("type" . "string")
+                                    ("description" . "Package name (default: current package)"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((name (cdr (assoc "name" args :test #'string=)))
+           (package (cdr (assoc "package" args :test #'string=))))
+       (format-intent-chain (introspect-intent-chain name package)))))
+
+  ;; telos-feature-members: List members of a feature
+  (register-tool
+   "telos-feature-members"
+   "List all functions and classes that belong to a telos feature."
+   '(("type" . "object")
+     ("required" . ("feature"))
+     ("properties" . (("feature" . (("type" . "string")
+                                    ("description" . "Feature name to query"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((feature-name (cdr (assoc "feature" args :test #'string=))))
+       (format-feature-members
+        (introspect-feature-members feature-name)
+        feature-name)))))
 
 ;;; ==========================================================================
 ;;; Usage Guide Content
@@ -746,6 +824,11 @@ Definitions persist across calls within a session.
 | profile-functions | Deterministic profiling | Exact timing of specific functions |
 | memory-report | Memory usage stats | Understanding memory consumption |
 | allocation-profile | Allocation profiling | Finding allocation hot spots |
+| telos-list-features | List intent features | Understanding code organization |
+| telos-feature-intent | Get feature intent | Understanding WHY code exists |
+| telos-get-intent | Get symbol intent | Purpose of function/class |
+| telos-intent-chain | Trace intent hierarchy | Code to feature relationship |
+| telos-feature-members | List feature members | What belongs to a feature |
 | list-definitions | Show session state | Review what's defined |
 | reset-session | Clear all state | Start fresh |
 
