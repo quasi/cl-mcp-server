@@ -3,7 +3,7 @@
 
 (asdf:defsystem #:cl-mcp-server
   :description "Model Context Protocol server for Common Lisp evaluation"
-  :author "Baba <quasi@quasilabs.com>"
+  :author "Abhijit Rao <quasi@quasilabs.com>"
   :license "MIT"
   :version "0.3.0"
   :serial t
