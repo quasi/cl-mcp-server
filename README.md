@@ -269,7 +269,7 @@ MIT License
 
 ### Version 0.3.0 (2026-02-05)
 
-**Telos Intent Introspection**
+**[Telos](https://github.com/quasi/telos) Intent Introspection**
 
 **New Tool Category:**
 - **Telos Integration (5 tools)**: Intent-driven development support
