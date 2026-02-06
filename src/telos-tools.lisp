@@ -108,6 +108,32 @@ Returns list of intent entries from most specific to root."
                        feature-name)))
     (ignore-errors (funcall feature-members-fn feat-sym))))
 
+(defun introspect-feature-decisions (feature-name)
+  "Get decisions for a feature by name.
+FEATURE-NAME can be a string or symbol."
+  (unless (telos-available-p)
+    (return-from introspect-feature-decisions nil))
+  (let* ((feature-decisions-fn (uiop:find-symbol* :feature-decisions :telos))
+         (feat-sym (if (stringp feature-name)
+                       (or (find-symbol (string-upcase feature-name))
+                           (intern (string-upcase feature-name) :keyword))
+                       feature-name))
+         (decisions (ignore-errors (funcall feature-decisions-fn feat-sym))))
+    (when decisions
+      (mapcar #'decision-to-plist decisions))))
+
+(defun introspect-list-decisions ()
+  "Get all decisions across all features.
+Returns alist of (feature-name-string . list-of-decision-plists)."
+  (unless (telos-available-p)
+    (return-from introspect-list-decisions nil))
+  (let* ((list-decisions-fn (uiop:find-symbol* :list-decisions :telos))
+         (all-decisions (ignore-errors (funcall list-decisions-fn))))
+    (when all-decisions
+      (loop for (feature . decisions) in all-decisions
+            collect (cons (symbol-name feature)
+                          (mapcar #'decision-to-plist decisions))))))
+
 ;;; ==========================================================================
 ;;; Helper Functions
 ;;; ==========================================================================
@@ -128,6 +154,21 @@ Returns list of intent entries from most specific to root."
           :constraints (slot-value intent constraints-slot)
           :assumptions (slot-value intent assumptions-slot)
           :failure-modes (slot-value intent failure-modes-slot))))
+
+(defun decision-to-plist (decision)
+  "Convert a telos:decision struct to a plist for formatting."
+  (let ((id-acc (uiop:find-symbol* :decision-id :telos))
+        (chose-acc (uiop:find-symbol* :decision-chose :telos))
+        (over-acc (uiop:find-symbol* :decision-over :telos))
+        (because-acc (uiop:find-symbol* :decision-because :telos))
+        (date-acc (uiop:find-symbol* :decision-date :telos))
+        (decided-by-acc (uiop:find-symbol* :decision-decided-by :telos)))
+    (list :id (funcall id-acc decision)
+          :chose (funcall chose-acc decision)
+          :over (funcall over-acc decision)
+          :because (funcall because-acc decision)
+          :date (funcall date-acc decision)
+          :decided-by (funcall decided-by-acc decision))))
 
 ;;; ==========================================================================
 ;;; Formatting Functions
@@ -237,6 +278,46 @@ Returns list of intent entries from most specific to root."
             (format s "Sub-features (~D):~%" (length features))
             (dolist (feat features)
               (format s "  ~A~%" feat)))))))
+
+(defun format-feature-decisions (decisions feature-name)
+  "Format a feature's decisions for output."
+  (if (null decisions)
+      (format nil "No decisions found for ~A (or telos not loaded)." feature-name)
+      (with-output-to-string (s)
+        (format s "Decisions for ~A (~D):~%~%" feature-name (length decisions))
+        (loop for dec in decisions
+              for i from 1
+              do (format s "~D. ~A~%" i (or (getf dec :id) "(unnamed)"))
+                 (when (getf dec :chose)
+                   (format s "   Chose: ~A~%" (getf dec :chose)))
+                 (when (getf dec :over)
+                   (format s "   Over: ~{~A~^, ~}~%" (getf dec :over)))
+                 (when (getf dec :because)
+                   (format s "   Because: ~A~%" (getf dec :because)))
+                 (when (getf dec :decided-by)
+                   (format s "   Decided by: ~A~%" (getf dec :decided-by)))
+                 (when (getf dec :date)
+                   (format s "   Date: ~A~%" (getf dec :date)))
+                 (format s "~%")))))
+
+(defun format-list-decisions (all-decisions)
+  "Format all decisions across features for output."
+  (if (null all-decisions)
+      "No decisions recorded (or telos not loaded)."
+      (with-output-to-string (s)
+        (let ((total (loop for (_ . decs) in all-decisions sum (length decs))))
+          (format s "Decisions across ~D feature~:P (~D total):~%~%"
+                  (length all-decisions) total))
+        (loop for (feature-name . decisions) in all-decisions
+              do (format s "~A (~D):~%" feature-name (length decisions))
+                 (dolist (dec decisions)
+                   (format s "  ~A: chose ~A"
+                           (or (getf dec :id) "(unnamed)")
+                           (or (getf dec :chose) "?"))
+                   (when (getf dec :over)
+                     (format s " over ~{~A~^, ~}" (getf dec :over)))
+                   (format s "~%"))
+                 (format s "~%")))))
 
 (defun format-intent-fields (stream plist)
   "Format intent fields to a stream."

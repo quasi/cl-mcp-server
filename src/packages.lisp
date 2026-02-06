@@ -206,12 +206,16 @@
    #:introspect-get-intent
    #:introspect-intent-chain
    #:introspect-feature-members
+   #:introspect-feature-decisions
+   #:introspect-list-decisions
    ;; Formatting
    #:format-list-features
    #:format-feature-intent
    #:format-get-intent
    #:format-intent-chain
-   #:format-feature-members))
+   #:format-feature-members
+   #:format-feature-decisions
+   #:format-list-decisions))
 
 (defpackage #:cl-mcp-server.tools
   (:use #:cl

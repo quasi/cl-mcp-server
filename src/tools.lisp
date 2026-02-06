@@ -784,7 +784,32 @@ Returns a list of alists with name, description, and inputSchema."
      (let ((feature-name (cdr (assoc "feature" args :test #'string=))))
        (format-feature-members
         (introspect-feature-members feature-name)
-        feature-name)))))
+        feature-name))))
+
+  ;; telos-feature-decisions: Get decisions for a feature
+  (register-tool
+   "telos-feature-decisions"
+   "Get the decisions recorded for a telos feature. Shows what was chosen, what was rejected, and why. Decisions capture the rationale behind design choices."
+   '(("type" . "object")
+     ("required" . ("feature"))
+     ("properties" . (("feature" . (("type" . "string")
+                                    ("description" . "Feature name to query decisions for"))))))
+   (lambda (args session)
+     (declare (ignore session))
+     (let ((feature-name (cdr (assoc "feature" args :test #'string=))))
+       (format-feature-decisions
+        (introspect-feature-decisions feature-name)
+        feature-name))))
+
+  ;; telos-list-decisions: List all decisions across features
+  (register-tool
+   "telos-list-decisions"
+   "List all recorded decisions across all telos features. Shows a summary of what was chosen and rejected for each feature."
+   `(("type" . "object")
+     ("properties" . ,(make-hash-table :test #'equal)))
+   (lambda (args session)
+     (declare (ignore args session))
+     (format-list-decisions (introspect-list-decisions)))))
 
 ;;; ==========================================================================
 ;;; Usage Guide Content
@@ -829,6 +854,8 @@ Definitions persist across calls within a session.
 | telos-get-intent | Get symbol intent | Purpose of function/class |
 | telos-intent-chain | Trace intent hierarchy | Code to feature relationship |
 | telos-feature-members | List feature members | What belongs to a feature |
+| telos-feature-decisions | Get feature decisions | Why design choices were made |
+| telos-list-decisions | List all decisions | Overview of all design decisions |
 | list-definitions | Show session state | Review what's defined |
 | reset-session | Clear all state | Start fresh |
 
