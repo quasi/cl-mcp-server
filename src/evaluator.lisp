@@ -289,7 +289,9 @@ Only the values from the last form are returned."
         (setf success-p nil)))
     (make-evaluation-result
      :success-p success-p
-     :values (when success-p (format-values result-values))
+     :values (when success-p
+               (let ((*package* eval-package))
+                 (format-values result-values)))
      :stdout (truncate-output (get-output-stream-string stdout-capture) *max-output-chars*)
      :stderr (truncate-output (get-output-stream-string stderr-capture) *max-output-chars*)
      :warnings (nreverse warnings-list)

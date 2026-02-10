@@ -40,7 +40,8 @@
 
 (test with-session-binds-special
   "with-session binds *session* during body"
-  (let ((session (cl-mcp-server.session:make-session)))
+  (let ((session (cl-mcp-server.session:make-session))
+        (cl-mcp-server.session:*session* nil))
     (is (null cl-mcp-server.session:*session*))
     (cl-mcp-server.session:with-session (session)
       (is (eq session cl-mcp-server.session:*session*)))
