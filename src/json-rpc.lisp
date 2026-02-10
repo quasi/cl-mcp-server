@@ -74,7 +74,7 @@
 
 ;;; Encoding
 
-(defun alistp (obj)
+(defun json-object-p (obj)
   "Check if OBJ is an alist (list of (string . value) pairs)."
   (and (listp obj)
        (every (lambda (pair)
@@ -104,7 +104,7 @@ Use :null for JSON null, nil becomes empty array."
     ((vectorp value)
      (map 'vector #'convert-for-json value))
     ;; Alists become hash tables (JSON objects)
-    ((alistp value)
+    ((json-object-p value)
      (let ((ht (make-hash-table :test #'equal)))
        (dolist (pair value ht)
          (setf (gethash (car pair) ht)

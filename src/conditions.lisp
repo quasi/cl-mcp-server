@@ -7,13 +7,17 @@
 
 (define-condition mcp-error (error)
   ((message :initarg :message :reader error-message :initform ""))
+  (:report (lambda (c s)
+             (format s "MCP error: ~A" (error-message c))))
   (:documentation "Base condition for MCP errors"))
 
 ;;; JSON-RPC 2.0 standard error conditions
 
 (define-condition json-rpc-error (mcp-error)
-  ((code :reader error-code :allocation :class)
+  ((code :reader error-code :initform 0 :allocation :class)
    (data :initarg :data :reader error-data :initform nil))
+  (:report (lambda (c s)
+             (format s "JSON-RPC error ~D: ~A" (error-code c) (error-message c))))
   (:documentation "Base condition for JSON-RPC errors"))
 
 (define-condition parse-error (json-rpc-error)

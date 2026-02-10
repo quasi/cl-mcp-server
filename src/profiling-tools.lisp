@@ -18,16 +18,18 @@
 MODE can be :CPU, :TIME, or :ALLOC.
 Returns a plist with :result, :report, and profiling metadata."
   (let* ((pkg (or (find-package (string-upcase package))
-                  (error "Package ~A not found" package)))
+                  (error 'cl-mcp-server.conditions:invalid-params
+                         :message (format nil "Package ~A not found" package))))
          (*package* pkg)
          (report-string nil)
          (result-values nil)
          (error-message nil))
-    ;; Parse the code
-    (let ((forms (with-input-from-string (s code)
-                   (loop for form = (read s nil 'eof)
-                         until (eq form 'eof)
-                         collect form))))
+    ;; Parse the code (bind *read-eval* nil to prevent #. execution at read time)
+    (let ((forms (let ((*read-eval* nil))
+                   (with-input-from-string (s code)
+                     (loop for form = (read s nil 'eof)
+                           until (eq form 'eof)
+                           collect form)))))
       ;; Run with profiling
       (sb-sprof:reset)
       (handler-case
@@ -94,10 +96,11 @@ ACTION can be:
                          (let ((pkg (or (find-package "CL-USER") *package*)))
                            (find-symbol (string-upcase fn-name) pkg)))))
             (when (and sym (fboundp sym))
+              ;; NOTE: sb-profile:profile is a macro, eval required for dynamic symbols
               (eval `(sb-profile:profile ,sym))
               (push sym *profiled-functions*)))))
        (package
-        ;; Profile all functions in package
+        ;; NOTE: sb-profile:profile is a macro, eval required for dynamic package arg
         (eval `(sb-profile:profile ,package))
         (setf *profiled-functions* (list package))))
      (list :action :start
@@ -125,7 +128,11 @@ ACTION can be:
     (:status
      (list :action :status
            :profiled *profiled-functions*
-           :active (not (null *profiled-functions*))))))
+           :active (not (null *profiled-functions*))))
+
+    (otherwise
+     (list :action action
+           :error (format nil "Unknown action ~A. Use :start, :stop, :report, :reset, or :status" action)))))
 
 (defun format-profile-functions-result (info)
   "Format deterministic profiling result as human-readable string."
@@ -198,17 +205,19 @@ If GC-FIRST is true, run garbage collection before reporting."
   "Profile memory allocation in CODE using sb-sprof :alloc mode.
 Returns detailed allocation information."
   (let* ((pkg (or (find-package (string-upcase package))
-                  (error "Package ~A not found" package)))
+                  (error 'cl-mcp-server.conditions:invalid-params
+                         :message (format nil "Package ~A not found" package))))
          (*package* pkg)
          (report-string nil)
          (result-values nil)
          (error-message nil)
          (bytes-before (ignore-errors (sb-ext:get-bytes-consed))))
-    ;; Parse the code
-    (let ((forms (with-input-from-string (s code)
-                   (loop for form = (read s nil 'eof)
-                         until (eq form 'eof)
-                         collect form))))
+    ;; Parse the code (bind *read-eval* nil to prevent #. execution at read time)
+    (let ((forms (let ((*read-eval* nil))
+                   (with-input-from-string (s code)
+                     (loop for form = (read s nil 'eof)
+                           until (eq form 'eof)
+                           collect form)))))
       ;; Run with allocation profiling
       (sb-sprof:reset)
       (handler-case

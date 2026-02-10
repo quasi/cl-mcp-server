@@ -43,7 +43,8 @@ FEATURE-NAME can be a string or symbol."
     (return-from introspect-feature-intent nil))
   (let* ((feature-intent-fn (uiop:find-symbol* :feature-intent :telos))
          (feat-sym (if (stringp feature-name)
-                       (or (find-symbol (string-upcase feature-name))
+                       (or (find-symbol (string-upcase feature-name) :keyword)
+                           (find-symbol (string-upcase feature-name))
                            (intern (string-upcase feature-name) :keyword))
                        feature-name))
          (intent (funcall feature-intent-fn feat-sym)))
@@ -66,14 +67,16 @@ Returns nil if no intent is attached."
         (list :error (format nil "Symbol ~A not found in ~A"
                              symbol-name (or package-name "current package")))))
     ;; Try function intent first
-    (let ((intent (ignore-errors (funcall get-intent-fn sym))))
+    (let ((intent (handler-case (funcall get-intent-fn sym)
+                    (error () nil))))
       (when intent
         (return-from introspect-get-intent
           (list* :type :function :name sym (intent-to-plist intent)))))
     ;; Try class intent
-    (let ((class (ignore-errors (find-class sym nil))))
+    (let ((class (find-class sym nil)))
       (when class
-        (let ((intent (ignore-errors (funcall class-intent-fn class))))
+        (let ((intent (handler-case (funcall class-intent-fn class)
+                        (error () nil))))
           (when intent
             (return-from introspect-get-intent
               (list* :type :class :name sym (intent-to-plist intent)))))))
@@ -93,7 +96,8 @@ Returns list of intent entries from most specific to root."
     (unless sym
       (return-from introspect-intent-chain
         (list :error (format nil "Symbol ~A not found" symbol-name))))
-    (let ((chain (ignore-errors (funcall intent-chain-fn sym))))
+    (let ((chain (handler-case (funcall intent-chain-fn sym)
+                    (error () nil))))
       (or chain
           (list :info "No intent chain found for this symbol")))))
 
@@ -103,10 +107,12 @@ Returns list of intent entries from most specific to root."
     (return-from introspect-feature-members nil))
   (let* ((feature-members-fn (uiop:find-symbol* :feature-members :telos))
          (feat-sym (if (stringp feature-name)
-                       (or (find-symbol (string-upcase feature-name))
+                       (or (find-symbol (string-upcase feature-name) :keyword)
+                           (find-symbol (string-upcase feature-name))
                            (intern (string-upcase feature-name) :keyword))
                        feature-name)))
-    (ignore-errors (funcall feature-members-fn feat-sym))))
+    (handler-case (funcall feature-members-fn feat-sym)
+      (error () nil))))
 
 (defun introspect-feature-decisions (feature-name)
   "Get decisions for a feature by name.
@@ -115,10 +121,12 @@ FEATURE-NAME can be a string or symbol."
     (return-from introspect-feature-decisions nil))
   (let* ((feature-decisions-fn (uiop:find-symbol* :feature-decisions :telos))
          (feat-sym (if (stringp feature-name)
-                       (or (find-symbol (string-upcase feature-name))
+                       (or (find-symbol (string-upcase feature-name) :keyword)
+                           (find-symbol (string-upcase feature-name))
                            (intern (string-upcase feature-name) :keyword))
                        feature-name))
-         (decisions (ignore-errors (funcall feature-decisions-fn feat-sym))))
+         (decisions (handler-case (funcall feature-decisions-fn feat-sym)
+                      (error () nil))))
     (when decisions
       (mapcar #'decision-to-plist decisions))))
 
@@ -128,7 +136,8 @@ Returns alist of (feature-name-string . list-of-decision-plists)."
   (unless (telos-available-p)
     (return-from introspect-list-decisions nil))
   (let* ((list-decisions-fn (uiop:find-symbol* :list-decisions :telos))
-         (all-decisions (ignore-errors (funcall list-decisions-fn))))
+         (all-decisions (handler-case (funcall list-decisions-fn)
+                          (error () nil))))
     (when all-decisions
       (loop for (feature . decisions) in all-decisions
             collect (cons (symbol-name feature)

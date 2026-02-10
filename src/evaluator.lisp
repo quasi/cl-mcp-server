@@ -14,6 +14,13 @@ Set to NIL to disable timeout (not recommended for untrusted code).")
 (defparameter *max-output-chars* 100000
   "Maximum characters to capture from stdout/stderr before truncation.")
 
+(defun truncate-output (string limit)
+  "Truncate STRING to at most LIMIT characters, appending a truncation notice."
+  (if (and limit (> (length string) limit))
+      (format nil "~A~%~%[Output truncated at ~:D of ~:D characters]"
+              (subseq string 0 limit) limit (length string))
+      string))
+
 ;;; ==========================================================================
 ;;; Evaluation Result Structure
 ;;; ==========================================================================
@@ -149,12 +156,14 @@ TIMING-PLIST contains :real-ms :run-ms :gc-ms :bytes-consed."
 (defun read-all-forms (string)
   "Read all Lisp forms from STRING.
 Returns a list of forms in order of appearance.
-Signals reader errors for malformed input."
-  (with-input-from-string (stream string)
-    (loop with eof = (gensym "EOF")
-          for form = (read stream nil eof)
-          until (eq form eof)
-          collect form)))
+Signals reader errors for malformed input.
+Binds *READ-EVAL* to NIL to prevent #. reader macro execution."
+  (let ((*read-eval* nil))
+    (with-input-from-string (stream string)
+      (loop with eof = (gensym "EOF")
+            for form = (read stream nil eof)
+            until (eq form eof)
+            collect form))))
 
 ;;; ==========================================================================
 ;;; Code Evaluation
@@ -184,16 +193,11 @@ Provides restarts: ABORT (return nil), USE-VALUE (return specified value)."
       ;; No timeout - just run directly
       (funcall thunk)
       ;; With timeout - use bordeaux-threads
-      (let ((result-values nil)
-            (error-occurred nil)
-            (completed nil))
+      (let ((result-values nil))
         (bt:with-timeout (timeout)
           (handler-case
-              (progn
-                (setf result-values (multiple-value-list (funcall thunk)))
-                (setf completed t))
+              (setf result-values (multiple-value-list (funcall thunk)))
             (bt:timeout ()
-              (setf error-occurred t)
               (restart-case
                   (error 'evaluation-timeout
                          :timeout-seconds timeout
@@ -240,10 +244,12 @@ Only the values from the last form are returned."
          (eval-package (etypecase package
                          (null (find-package "CL-USER"))
                          (string (or (find-package (string-upcase package))
-                                     (error "Package ~A not found" package)))
+                                     (error 'invalid-params
+                                            :message (format nil "Package ~A not found" package))))
                          (package package)
                          (symbol (or (find-package package)
-                                     (error "Package ~A not found" package))))))
+                                     (error 'invalid-params
+                                            :message (format nil "Package ~A not found" package)))))))
     ;; handler-case must be OUTSIDE handler-bind for the error handler to fire
     ;; before handler-case transfers control
     (handler-case
@@ -284,8 +290,8 @@ Only the values from the last form are returned."
     (make-evaluation-result
      :success-p success-p
      :values (when success-p (format-values result-values))
-     :stdout (get-output-stream-string stdout-capture)
-     :stderr (get-output-stream-string stderr-capture)
+     :stdout (truncate-output (get-output-stream-string stdout-capture) *max-output-chars*)
+     :stderr (truncate-output (get-output-stream-string stderr-capture) *max-output-chars*)
      :warnings (nreverse warnings-list)
      :error-info error-info
      :structured-error structured-error

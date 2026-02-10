@@ -48,4 +48,4 @@
                  (:file "integration-tests")
                  (:file "encoding-tests"))))
   :perform (asdf:test-op (o c)
-             (symbol-call :fiveam :run! :cl-mcp-server-tests)))
+             (uiop:symbol-call :fiveam :run! :cl-mcp-server-tests)))
