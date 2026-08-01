@@ -213,4 +213,5 @@
   (:use #:cl
         #:cl-mcp-server.session)
   (:export
-   #:start))
+   #:start
+   #:install-process-guards))

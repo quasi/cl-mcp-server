@@ -24,6 +24,7 @@
                  (:file "telos-tools")
                  (:file "paren-tools")
                  (:file "tools")
+                 (:file "stdio-guard")
                  (:file "server"))))
   :in-order-to ((asdf:test-op (asdf:test-op #:cl-mcp-server/tests))))
 
@@ -48,6 +49,7 @@
                  (:file "profiling-tools-tests")
                  (:file "paren-tools-tests")
                  (:file "telos-tools-tests")
-                 (:file "integration-tests"))))
+                 (:file "integration-tests")
+                 (:file "transport-isolation-tests"))))
   :perform (asdf:test-op (o c)
              (uiop:symbol-call :fiveam :run! :cl-mcp-server-tests)))
