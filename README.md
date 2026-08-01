@@ -331,6 +331,45 @@ MIT License
 
 ### Unreleased
 
+**Transport Robustness**
+
+- Evaluated code can no longer kill the server or corrupt the JSON-RPC stream.
+  New `src/stdio-guard.lisp` installs process-global guards from `start`
+- An unhandled error in any thread spawned by evaluated code previously quit the
+  whole process: `sbcl --script` implies `--disable-debugger`, whose hook prints a
+  backtrace and exits. `sb-ext:*invoke-debugger-hook*` now logs to stderr and
+  aborts only the offending thread, resuming via `CONTINUE` so `(break)` in user
+  code merely logs and carries on
+- Stray output from spawned threads no longer reaches the protocol stream. Threads
+  read the *global* value of `*standard-output*`, which `--script` leaves pointed at
+  the pipe; the guards set the global cell via `sb-ext:symbol-global-value`, not a
+  plain `setf`, which only mutates the script's own binding
+- `start` accepts `:input` / `:output`, capturing the real stdio before the
+  redirection so the transport keeps the real pipe
+- Known gap: code writing directly to `sb-sys:*stdout*` still reaches the protocol
+  stream. No dynamic-variable rebinding can prevent that
+
+**Bug Fixes**
+
+- `profile-functions report` returned an empty string, silently and with no error.
+  It captured `*standard-output*` while `sb-profile:report` writes to
+  `*trace-output*`
+- `find-methods` signalled `UNBOUND-SLOT` on any class that had never been
+  instantiated, since an unfinalized class has no precedence list. The class is now
+  finalized on demand
+
+**Introspection Usability**
+
+- `find-methods` with `:include-inherited` returned 1,205 lines for a two-slot
+  class, exceeding the tool's token budget, because the class precedence list always
+  reaches `standard-object` and `t`. Language-level superclasses are now skipped and
+  the omission is reported rather than silently truncated
+- `who-calls` collapses duplicate entries by caller and location, reporting a call
+  site count instead of repeating identical rows for recursive functions
+- `who-calls` no longer attributes session-defined functions to `run-server.lisp`.
+  SBCL records the file being loaded when `eval` ran, which for `evaluate-lisp`
+  definitions is the launcher; such entries are marked "defined in this session"
+
 **MCP Token Usage Optimization**
 
 - `evaluate-lisp` suppresses return values when warnings are present, avoiding large value echoes in diagnostic responses
