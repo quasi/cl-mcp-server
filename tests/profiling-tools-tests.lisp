@@ -70,6 +70,30 @@
   (let ((result (cl-mcp-server.profiling-tools:introspect-profile-functions :report)))
     (is (eq :report (getf result :action)))))
 
+(defun profiling-report-probe (n)
+  "Trivial recursive workload, used only to give the profiler something to count."
+  (if (< n 2) n (+ (profiling-report-probe (- n 1)) (profiling-report-probe (- n 2)))))
+
+(test introspect-profile-functions-report-includes-called-function
+  "A profiled function that has been called must appear in the report.
+
+SB-PROFILE:REPORT writes to *TRACE-OUTPUT*, not *STANDARD-OUTPUT*. Capturing
+the wrong stream yields an empty report with no error, so the tool silently
+returned nothing at all."
+  (unwind-protect
+       (progn
+         (cl-mcp-server.profiling-tools:introspect-profile-functions
+          :start :functions (list 'profiling-report-probe))
+         (profiling-report-probe 15)
+         (let* ((result (cl-mcp-server.profiling-tools:introspect-profile-functions :report))
+                (report (getf result :report)))
+           (is (stringp report))
+           (is (plusp (length report))
+               "Report must not be empty after a profiled function has run")
+           (is (search "PROFILING-REPORT-PROBE" report)
+               "Report must name the function that was profiled")))
+    (cl-mcp-server.profiling-tools:introspect-profile-functions :stop)))
+
 (test format-profile-functions-result-status
   "format-profile-functions-result formats status"
   (let* ((result (cl-mcp-server.profiling-tools:introspect-profile-functions :status))

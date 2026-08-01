@@ -117,8 +117,12 @@ ACTION can be:
     (:report
      (list :action :report
            :profiled *profiled-functions*
-           :report (with-output-to-string (*standard-output*)
-                     (sb-profile:report))))
+           ;; SB-PROFILE:REPORT writes to *TRACE-OUTPUT*. Binding
+           ;; *STANDARD-OUTPUT* here captured nothing and reported no error,
+           ;; so the tool silently returned an empty report.
+           :report (with-output-to-string (trace-capture)
+                     (let ((*trace-output* trace-capture))
+                       (sb-profile:report)))))
 
     (:reset
      (sb-profile:reset)
