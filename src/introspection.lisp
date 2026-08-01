@@ -165,24 +165,69 @@ Returns list of plists with :name, :package, :type."
 ;;; A.3: who-calls - Cross-Reference (Callers)
 ;;; ==========================================================================
 
+(defvar *session-source-pathname* nil
+  "The file SBCL attributes to code evaluated in this session.
+
+Definitions made through evaluate-lisp are recorded by the cross-reference
+database as living in whatever file was being loaded when EVAL ran — the
+launcher script. Reporting that path as a definition site is misleading, so
+locations matching it are marked as session-defined instead. Set by START.")
+
+(defun %session-location-p (location)
+  "True when LOCATION is the launcher path SBCL attributes to session code."
+  (and *session-source-pathname*
+       location
+       (equal (namestring (pathname location))
+              (namestring *session-source-pathname*))))
+
+(defun %annotate-xref-entries (entries)
+  "Collapse duplicate cross-reference entries and mark session-defined ones.
+
+A recursive function produces one raw entry per call site, so the same caller
+at the same location appears repeatedly. Entries are merged and carry a
+:reference-count instead."
+  (let ((counts (make-hash-table :test #'equal))
+        (base (make-hash-table :test #'equal))
+        (order '()))
+    (dolist (entry entries)
+      (let* ((session-defined (%session-location-p (getf entry :location)))
+             (location (unless session-defined (getf entry :location)))
+             (key (list (getf entry :caller) location)))
+        (unless (gethash key base)
+          (setf (gethash key base)
+                (list :caller (getf entry :caller)
+                      :caller-package (getf entry :caller-package)
+                      :location location
+                      :session-defined session-defined))
+          (push key order))
+        (incf (gethash key counts 0))))
+    (mapcar (lambda (key)
+              (append (gethash key base)
+                      (list :reference-count (gethash key counts))))
+            (nreverse order))))
+
+(defun %raw-xref-entries (raw)
+  "Convert SBCL cross-reference conses into plists."
+  (mapcar (lambda (entry)
+            (let* ((caller (car entry))
+                   (source (cdr entry))
+                   (pathname (when source
+                               (sb-introspect:definition-source-pathname source))))
+              (list :caller (if (symbolp caller)
+                                (symbol-name caller)
+                                (prin1-to-string caller))
+                    :caller-package (when (symbolp caller)
+                                      (and (symbol-package caller)
+                                           (package-name (symbol-package caller))))
+                    :location (when pathname (namestring pathname)))))
+          raw))
+
 (defun introspect-who-calls (sym)
   "Find all functions that call SYM.
 Uses SBCL's cross-reference database.
-Returns list of plists with :caller, :caller-package, :location."
-  (let ((callers (sb-introspect:who-calls sym)))
-    (mapcar (lambda (entry)
-              (let* ((caller (car entry))
-                     (source (cdr entry))
-                     (pathname (when source
-                                 (sb-introspect:definition-source-pathname source))))
-                (list :caller (if (symbolp caller)
-                                  (symbol-name caller)
-                                  (prin1-to-string caller))
-                      :caller-package (when (symbolp caller)
-                                        (and (symbol-package caller)
-                                             (package-name (symbol-package caller))))
-                      :location (when pathname (namestring pathname)))))
-            callers)))
+Returns list of plists with :caller, :caller-package, :location,
+:session-defined and :reference-count."
+  (%annotate-xref-entries (%raw-xref-entries (sb-introspect:who-calls sym))))
 
 (defun format-who-calls-results (results sym)
   "Format who-calls results as human-readable string."
@@ -191,11 +236,15 @@ Returns list of plists with :caller, :caller-package, :location."
         (progn
           (format s "~D caller~:P of ~A:~%~%" (length results) sym)
           (dolist (r results)
-            (format s "  ~@[~A::~]~A~%"
+            (format s "  ~@[~A::~]~A~@[ (~D call sites)~]~%"
                     (getf r :caller-package)
-                    (getf r :caller))
-            (when (getf r :location)
-              (format s "    at ~A~%" (getf r :location)))))
+                    (getf r :caller)
+                    (let ((n (getf r :reference-count)))
+                      (when (and n (> n 1)) n)))
+            (cond ((getf r :session-defined)
+                   (format s "    defined in this session (not from a file)~%"))
+                  ((getf r :location)
+                   (format s "    at ~A~%" (getf r :location))))))
         (format s "No callers found for ~A~%" sym))))
 
 ;;; ==========================================================================
@@ -585,6 +634,21 @@ Returns a plist with :generic-function, :qualifiers, :lambda-list, :specializers
                                 (sb-mop:method-specializers method))
           :documentation (documentation method t))))
 
+(defparameter *language-level-packages*
+  '("COMMON-LISP" "SB-PCL" "SB-MOP" "SB-KERNEL")
+  "Packages whose classes carry the language's own protocol rather than the
+user's design. Their methods are omitted from inherited-method listings.")
+
+(defun %language-level-class-p (class)
+  "True when CLASS belongs to the language rather than to user code."
+  (let ((name (class-name class)))
+    (and (symbolp name)
+         (symbol-package name)
+         (member (package-name (symbol-package name))
+                 *language-level-packages*
+                 :test #'string=)
+         t)))
+
 (defun introspect-find-methods (class-designator &key include-inherited)
   "Find all methods specialized on a class.
 CLASS-DESIGNATOR can be a class object, symbol, or string.
@@ -602,16 +666,29 @@ Returns a list of method info plists."
                                            :message (format nil "~A is not a class" class-designator)))
                                 (error 'cl-mcp.conditions:invalid-params
                                        :message (format nil "Symbol ~A not found" class-designator)))))))
-         (methods (sb-mop:specializer-direct-methods class)))
+         (methods (sb-mop:specializer-direct-methods class))
+         (omitted '()))
+    ;; A class that has never been instantiated has no precedence list yet,
+    ;; and reading it signals UNBOUND-SLOT. Exploring a freshly loaded system
+    ;; hits this constantly, so finalize on demand.
+    (when (and include-inherited (not (sb-mop:class-finalized-p class)))
+      (sb-mop:finalize-inheritance class))
     (when include-inherited
       (dolist (super (rest (sb-mop:class-precedence-list class)))
-        (dolist (m (sb-mop:specializer-direct-methods super))
-          (push m methods))))
+        ;; Every class inherits STANDARD-OBJECT and T, which carry the entire
+        ;; standard protocol (PRINT-OBJECT, SHARED-INITIALIZE, ...). Including
+        ;; them buried a two-slot class under 1,205 lines of output that no
+        ;; one asked for. Skip them, and say so rather than truncating quietly.
+        (if (%language-level-class-p super)
+            (push (class-name super) omitted)
+            (dolist (m (sb-mop:specializer-direct-methods super))
+              (push m methods)))))
     ;; Remove duplicates and sort by generic function name
     (let ((unique-methods (remove-duplicates methods)))
-      (sort (mapcar #'introspect-method unique-methods)
-            #'string<
-            :key (lambda (m) (or (getf m :generic-function) ""))))))
+      (values (sort (mapcar #'introspect-method unique-methods)
+                    #'string<
+                    :key (lambda (m) (or (getf m :generic-function) "")))
+              (nreverse omitted)))))
 
 (defun format-method-info (method-info)
   "Format a method info plist as human-readable string."
@@ -623,15 +700,21 @@ Returns a list of method info plists."
     (format s " (~{~A~^, ~})~%"
             (getf method-info :specializers))))
 
-(defun format-find-methods-results (results class-name)
-  "Format find-methods results as human-readable string."
+(defun format-find-methods-results (results class-name &key omitted-classes)
+  "Format find-methods results as human-readable string.
+OMITTED-CLASSES names language-level superclasses that were skipped; they are
+reported so the omission is visible rather than silent."
   (with-output-to-string (s)
     (if results
         (progn
           (format s "~D method~:P specialized on ~A:~%~%"
                   (length results) class-name)
           (dolist (m results)
-            (write-string (format-method-info m) s)))
+            (write-string (format-method-info m) s))
+          (when omitted-classes
+            (format s "~%Omitted the standard protocol inherited from ~
+~{~A~^, ~} (use SBCL introspection directly if you need it).~%"
+                    omitted-classes)))
         (format s "No methods specialized on ~A~%" class-name))))
 
 ;;; ==========================================================================

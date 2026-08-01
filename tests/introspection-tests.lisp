@@ -450,6 +450,104 @@
     (is (stringp formatted))
     (is (search "method" formatted))))
 
+;;; --------------------------------------------------------------------------
+;;; Inherited-method usability
+;;; --------------------------------------------------------------------------
+
+(defclass test-clos-employee (test-clos-person)
+  ((employer :initarg :employer :accessor test-employee-employer))
+  (:documentation "Subclass fixture for inherited-method tests"))
+
+(defun method-named-p (results name)
+  "True when RESULTS contain a method on the generic function called NAME."
+  (and (find name results
+             :key (lambda (m) (or (getf m :generic-function) ""))
+             :test #'string=)
+       t))
+
+(test find-methods-inherited-includes-superclass-methods
+  "include-inherited must surface the accessors defined on a user superclass."
+  (let ((results (cl-mcp-server.introspection:introspect-find-methods
+                  'test-clos-employee :include-inherited t)))
+    (is (method-named-p results "TEST-EMPLOYEE-EMPLOYER"))
+    (is (method-named-p results "TEST-PERSON-NAME"))))
+
+(test find-methods-inherited-omits-language-protocol
+  "include-inherited must not drag in the whole STANDARD-OBJECT protocol.
+
+Walking the full class precedence list reaches STANDARD-OBJECT and T, which
+carry hundreds of methods (PRINT-OBJECT, SHARED-INITIALIZE, ...). On a
+two-slot class that produced 1,205 lines and blew the tool's token budget."
+  (let ((results (cl-mcp-server.introspection:introspect-find-methods
+                  'test-clos-employee :include-inherited t)))
+    (is (not (method-named-p results "PRINT-OBJECT"))
+        "Language-level protocol methods must be omitted")
+    (is (not (method-named-p results "SHARED-INITIALIZE")))
+    (is (< (length results) 25)
+        "Inherited view of a small class must stay small")))
+
+(test find-methods-reports-what-it-omitted
+  "Omission must be visible, never silent. The second value names the
+language-level superclasses that were skipped."
+  (multiple-value-bind (results omitted)
+      (cl-mcp-server.introspection:introspect-find-methods
+       'test-clos-employee :include-inherited t)
+    (declare (ignore results))
+    (is (member 'standard-object omitted))
+    (is (member t omitted))))
+
+(test format-find-methods-mentions-omitted-classes
+  "The human-readable output must say what was left out."
+  (multiple-value-bind (results omitted)
+      (cl-mcp-server.introspection:introspect-find-methods
+       'test-clos-employee :include-inherited t)
+    (let ((formatted (cl-mcp-server.introspection:format-find-methods-results
+                      results 'test-clos-employee :omitted-classes omitted)))
+      (is (search "STANDARD-OBJECT" formatted)))))
+
+;;; --------------------------------------------------------------------------
+;;; Cross-reference location reporting
+;;; --------------------------------------------------------------------------
+
+(defun test-xref-recursive (n)
+  "Recursive probe: produces one xref entry per call site."
+  (if (< n 2) n (+ (test-xref-recursive (- n 1)) (test-xref-recursive (- n 2)))))
+
+(test who-calls-collapses-duplicate-call-sites
+  "A recursive function yields one xref entry per call site. Reporting the
+same caller at the same location twice is noise; entries must be collapsed."
+  (let* ((results (cl-mcp-server.introspection:introspect-who-calls
+                   'test-xref-recursive))
+         (keys (mapcar (lambda (r) (list (getf r :caller) (getf r :location)))
+                       results)))
+    (is (= (length keys) (length (remove-duplicates keys :test #'equal)))
+        "No two entries may share a caller and location")))
+
+(test who-calls-marks-session-defined-locations
+  "SBCL attributes functions defined through evaluate-lisp to the launcher
+script, because that is what was being loaded when EVAL ran. Reporting that
+path as the definition site is misleading, so it is marked instead."
+  (let ((cl-mcp-server.introspection:*session-source-pathname*
+          #p"/somewhere/run-server.lisp"))
+    (let ((entries (cl-mcp-server.introspection:%annotate-xref-entries
+                    (list (list :caller "FOO"
+                                :caller-package "CL-USER"
+                                :location "/somewhere/run-server.lisp")))))
+      (is (getf (first entries) :session-defined))
+      (is (null (getf (first entries) :location))
+          "The misleading path must not be reported as a location"))))
+
+(test who-calls-keeps-real-file-locations
+  "Locations that are genuine source files must survive untouched."
+  (let ((cl-mcp-server.introspection:*session-source-pathname*
+          #p"/somewhere/run-server.lisp"))
+    (let ((entries (cl-mcp-server.introspection:%annotate-xref-entries
+                    (list (list :caller "BAR"
+                                :caller-package "CL-USER"
+                                :location "/project/src/real.lisp")))))
+      (is (null (getf (first entries) :session-defined)))
+      (is (string= "/project/src/real.lisp" (getf (first entries) :location))))))
+
 ;; Tool Registration Tests for Phase D
 (test class-info-tool-registered
   "class-info tool is registered"

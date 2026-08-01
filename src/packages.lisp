@@ -96,6 +96,8 @@
    ;; A.3: who-calls
    #:introspect-who-calls
    #:format-who-calls-results
+   #:*session-source-pathname*
+   #:%annotate-xref-entries
    ;; who-references
    #:introspect-who-references
    #:format-who-references-results

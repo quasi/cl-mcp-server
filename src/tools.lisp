@@ -371,9 +371,11 @@ Returns the matching keyword or nil. Comparison is case-insensitive."
                     (let ((sym (find-symbol (string-upcase class-name) pkg)))
                       (if (and sym (find-class sym nil))
                           (handler-case
-                              (let ((results (introspect-find-methods sym
-                                                                      :include-inherited include-inherited)))
-                                (format-find-methods-results results sym))
+                              (multiple-value-bind (results omitted)
+                                  (introspect-find-methods
+                                   sym :include-inherited include-inherited)
+                                (format-find-methods-results
+                                 results sym :omitted-classes omitted))
                             (error (e)
                               (format nil "Error finding methods: ~A" e)))
                           (format nil "Class ~A not found in package ~A"
