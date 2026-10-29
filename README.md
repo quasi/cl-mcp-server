@@ -38,18 +38,16 @@ Unlike one-shot code execution, CL-MCP-Server provides a full REPL experience wh
 - **37 tools**: full-on REPL power for evaluation, introspection, profiling, and more
 - **Rich Error Reporting**: Get concise default errors, with detailed backtraces and condition information on demand
 - **Stream Separation**: Clearly distinguish between return values, printed output, and warnings
-- **Safe Execution**: Server never crashes—all user code errors are caught and reported
+- **Safe Execution**: Errors in evaluated code are caught and reported; guards keep stray threads and output from killing the server or corrupting the protocol stream
 
 ### For Developers
 
 - **Standard Protocol**: Uses MCP and JSON-RPC 2.0 for interoperability
-- **Formally Specified**: Complete Canon specification in `canon/` directory
 - **Well-Tested**: Comprehensive test suite covering protocol, evaluation, and error handling
 - **Extensible**: Clean architecture supports adding new tools and capabilities
 
 ### For AI Agents
 
-- **Formal Contracts**: Machine-readable specifications in `canon/features/`
 - **Predictable Behavior**: Documented invariants and properties
 - **JSON Schema**: Structured request/response formats
 - **Standard Transport**: stdio-based communication
@@ -128,9 +126,9 @@ claude mcp add --scope user --transport stdio lisp -- sbcl --script /path/to/cl-
     "cl-mcp-server": {
         "type": "local",
         "enabled": true,
-        "command": ["sbcl", "--script", "/path-to/cl-mcp-server/run-server.lisp"],
-    },
-  },
+        "command": ["sbcl", "--script", "/path-to/cl-mcp-server/run-server.lisp"]
+    }
+  }
 }
 ```
 
@@ -164,14 +162,7 @@ See the [Quickstart Guide](docs/quickstart.md) for a complete walkthrough.
 ### For Contributors
 
 - **[Dev Skill](.claude/skills/dev/SKILL.md)** - Contributor guidelines, build commands, code conventions
-- **[canon/INDEX.md](canon/INDEX.md)** - Navigate formal specifications
 - **[Architecture](docs/explanation/architecture.md)** - System design and rationale
-
-### For External Agents
-
-- **[canon/features/](canon/features/)** - Formal API specifications
-- **[canon/core/foundation/vocabulary.md](canon/core/foundation/vocabulary.md)** - Domain model
-- **[MCP Protocol Contracts](canon/features/mcp-protocol/contracts/)** - Protocol details
 
 ## Features
 
@@ -376,12 +367,10 @@ MIT License
 - Immediate error and timeout responses are concise by default; detailed backtraces remain available through `describe-last-error` and `get-backtrace`
 - README tool catalog updated to list all 37 currently registered tools
 
-### Version 0.3.1 (2026-02-25)
-
 **Protocol Layer Extraction**
 
 - Extracted JSON-RPC, stdio transport, and tool registry into standalone `cl-mcp` library
-- `server.lisp` is now a thin 12-line glue: `cl-mcp:make-server` → `define-builtin-tools` → `cl-mcp:run-server`
+- `server.lisp` is now thin glue: `cl-mcp:make-server` → `define-builtin-tools` → `cl-mcp:run-server`
 - `cl-mcp-server.conditions` re-exports from `cl-mcp.conditions` for backward compatibility
 - No functional changes to tools or REPL behavior
 
@@ -425,11 +414,9 @@ MIT License
 - Complete reference documentation for all tool categories
 - New how-to guides for code exploration and introspection
 - Expanded user documentation with examples
-- Canon specifications updated for all features
 
 **Infrastructure:**
 - Comprehensive test coverage for all new tools
-- Formal Canon specifications for verification
 - Enhanced error reporting and diagnostics
 
 ### Version 0.1.0 (2026-01-22)
@@ -442,7 +429,6 @@ MIT License
 - Output stream separation (values, stdout, stderr, warnings)
 - Multiple return values support
 - Comprehensive test suite (95%+ coverage)
-- Canon specification for formal verification
 - User documentation and tutorials
 
 ---

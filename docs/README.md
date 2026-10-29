@@ -60,7 +60,6 @@ This documentation follows the [Diátaxis framework](https://diataxis.fr/) for c
 | Learn interactively | [First REPL Session Tutorial](tutorials/01-first-session.md) |
 | Understand the architecture | [Architecture Explanation](explanation/architecture.md) |
 | Look up API details | [evaluate-lisp Reference](reference/evaluate-lisp.md) |
-| See the formal specification | `../canon/` directory |
 
 ## For Different Audiences
 
@@ -78,18 +77,16 @@ This documentation follows the [Diátaxis framework](https://diataxis.fr/) for c
 **Goal**: Modify or extend the CL-MCP-Server codebase.
 
 **Path**:
-1. Read `../AGENT.md` - Contributor instructions
-2. Read `../canon/INDEX.md` - Formal specifications
-3. [Architecture Explanation](explanation/architecture.md) - Understand the design
+1. Read [Dev Skill](../.claude/skills/dev/SKILL.md) - Contributor instructions
+2. [Architecture Explanation](explanation/architecture.md) - Understand the design
 
 ### For External Agents
 
 **Goal**: Integrate with CL-MCP-Server programmatically.
 
 **Path**:
-- Read formal specifications in `../canon/features/` (PUBLIC artifacts only)
-- See `../canon/features/mcp-protocol/` for protocol details
-- See `../canon/features/code-evaluator/contracts/evaluate-lisp-tool.md` for tool spec
+- See [MCP Protocol Reference](reference/mcp-protocol.md) for protocol details
+- See [evaluate-lisp Reference](reference/evaluate-lisp.md) for the main tool
 
 ## What is MCP?
 
@@ -215,9 +212,8 @@ Operation was (/ 1 0).
 
 Interested in contributing?
 
-1. Read `../AGENT.md` for contributor guidelines
-2. Review `../canon/` for formal specifications
-3. See open issues in the issue tracker
+1. Read the [Dev Skill](../.claude/skills/dev/SKILL.md) for contributor guidelines
+2. See open issues in the issue tracker
 
 ## License
 
